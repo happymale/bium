@@ -14,8 +14,23 @@ import type { PreparedImage } from './image'
 /** 이 값 미만이면 결과를 확정하지 않고 구청 문의로 유도합니다. */
 export const CONFIDENCE_THRESHOLD = 0.85
 
-/** 설정 화면 표기용 모델 이름 (server/classify.ts 의 MODEL 과 맞춰주세요) */
-export const MODEL_LABEL = 'Claude Opus 5'
+/**
+ * 설정 화면 표기용 모델 이름.
+ * 서버가 실제로 쓰는 모델 id 를 받아 사람이 읽을 이름으로 바꿉니다.
+ * (코드에 이름을 박아두면 .env 를 바꿔도 화면이 따라오지 않습니다)
+ */
+export function modelLabel(id: string | null): string {
+  switch (id) {
+    case 'claude-opus-5':
+      return 'Claude Opus 5'
+    case 'claude-sonnet-5':
+      return 'Claude Sonnet 5'
+    case 'claude-haiku-4-5':
+      return 'Claude Haiku 4.5'
+    default:
+      return id ?? '알 수 없는 모델'
+  }
+}
 
 export type Classification = {
   itemName: string

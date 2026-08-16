@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { Screen, Stub } from '../components/Screen'
 import { AccountSection } from '../components/AccountSection'
 import { REGION_OPTIONS } from '../data/regions'
-import { CONFIDENCE_THRESHOLD, MODEL_LABEL } from '../lib/classify'
+import { CONFIDENCE_THRESHOLD, modelLabel } from '../lib/classify'
 import { NATIONWIDE, useActiveRegion } from '../lib/activeRegion'
 import { supabaseEnabled } from '../lib/supabase'
 import { useItems } from '../store/items'
@@ -29,11 +29,16 @@ export function SettingsScreen() {
   const fees = regionOpt.fees
 
   // API 키가 서버에 있는지 — 키 값 자체는 절대 내려오지 않고 있음/없음만 받습니다
+  // 키 값 자체는 내려오지 않고 있음/없음과 모델 이름만 받습니다
   const [hasKey, setHasKey] = useState<boolean | null>(null)
+  const [serverModel, setServerModel] = useState<string | null>(null)
   useEffect(() => {
     fetch('/api/status')
       .then((r) => r.json())
-      .then((j) => setHasKey(Boolean(j.hasApiKey)))
+      .then((j) => {
+        setHasKey(Boolean(j.hasApiKey))
+        setServerModel(typeof j.model === 'string' ? j.model : null)
+      })
       .catch(() => setHasKey(false))
   }, [])
 
@@ -136,8 +141,8 @@ export function SettingsScreen() {
               {hasKey == null
                 ? '확인 중…'
                 : hasKey
-                  ? `${MODEL_LABEL} · 실제 사진을 판별합니다`
-                  : '.env.local 에 API 키를 넣으면 실제 판별로 전환됩니다'}
+                  ? `${modelLabel(serverModel)} · 실제 사진을 판별합니다`
+                  : 'API 키가 없습니다. 로컬은 .env.local, 배포본은 호스팅 환경변수에 넣어주세요'}
             </div>
           </div>
           <span className={s.rowValue}>
