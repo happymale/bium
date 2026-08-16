@@ -1,16 +1,78 @@
-node_modules
-dist
-dist-ssr
+# ─────────────────────────────────────────────────────────────
+#  비움 BIUM — .gitignore
+#  ⚠ 이 파일에서 가장 중요한 건 "비밀정보" 섹션입니다.
+#     API 키가 올라가면 타인이 우리 크레딧을 씁니다.
+# ─────────────────────────────────────────────────────────────
+
+# ── 비밀정보 (절대 커밋 금지) ─────────────────────────────────
+.env
+.env.*
+!.env.example
+!.env.local.example
+*.pem
+*.key
+secrets.json
+
+# ── 의존성 ───────────────────────────────────────────────────
+node_modules/
+.pnp
+.pnp.js
+.yarn/
+
+# ── 빌드 산출물 ──────────────────────────────────────────────
+dist/
+dist-ssr/
+build/
+out/
 *.local
 
-# TypeScript 증분 빌드 캐시
+# vite-plugin-pwa 가 개발 중 생성 (서비스워커 미리보기)
+dev-dist/
+
+# ── 배포 도구 캐시 ───────────────────────────────────────────
+.vercel/
+.netlify/
+.wrangler/
+.cloudflare/
+
+# ── TypeScript / 빌드 캐시 ───────────────────────────────────
 *.tsbuildinfo
+.cache/
+.temp/
+.turbo/
+.eslintcache
 
-# API 키는 절대 커밋하지 않습니다
-.env
-.env.local
-.env.*.local
+# ── 로그 ─────────────────────────────────────────────────────
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
 
+# ── 테스트 / 커버리지 ────────────────────────────────────────
+coverage/
+.nyc_output/
+
+# ── 에디터 ───────────────────────────────────────────────────
 .vscode/*
 !.vscode/extensions.json
+!.vscode/settings.json
+.idea/
+*.swp
+*.swo
+*~
+
+# ── OS 산출물 ────────────────────────────────────────────────
+# macOS
 .DS_Store
+.AppleDouble
+.LSOverride
+# Windows
+Thumbs.db
+Thumbs.db:encryptable
+ehthumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+*.lnk
