@@ -75,6 +75,107 @@
   transform: translateX(19px);
 }
 
+/* 프로필·계정 입력 */
+.stack {
+  display: block;
+  padding: 14px 15px;
+  border-bottom: 1px solid var(--grid);
+}
+
+.stack:last-child {
+  border-bottom: 0;
+}
+
+.input,
+.select {
+  width: 100%;
+  margin-top: 8px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  color: var(--ink);
+  font-family: inherit;
+  font-size: 14.5px;
+  padding: 11px 12px;
+  appearance: none;
+}
+
+.select {
+  background-image: linear-gradient(45deg, transparent 50%, var(--muted) 50%),
+    linear-gradient(135deg, var(--muted) 50%, transparent 50%);
+  background-position:
+    calc(100% - 18px) calc(50% + 1px),
+    calc(100% - 13px) calc(50% + 1px);
+  background-size: 5px 5px, 5px 5px;
+  background-repeat: no-repeat;
+  padding-right: 36px;
+}
+
+.input:focus,
+.select:focus {
+  outline: 2px solid var(--brand);
+  outline-offset: -1px;
+}
+
+.pair {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.action {
+  margin-top: 10px;
+  width: 100%;
+  border: 0;
+  border-radius: var(--radius-sm);
+  background: var(--brand);
+  color: #fff;
+  font-size: 13.5px;
+  font-weight: 800;
+  padding: 11px 0;
+}
+
+.action:disabled {
+  background: var(--grid);
+  color: var(--muted);
+}
+
+.linkish {
+  margin-top: 9px;
+  width: 100%;
+  border: 0;
+  background: none;
+  color: var(--muted);
+  font-size: 12.5px;
+  font-weight: 700;
+  padding: 4px 0;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.msg {
+  margin: 9px 0 0;
+  font-size: 12px;
+  line-height: 1.6;
+  padding: 10px 11px;
+  border-radius: var(--radius-sm);
+}
+
+.msgOk {
+  background: var(--brand-soft);
+  color: var(--ink2);
+}
+
+.msgErr {
+  border: 1px solid var(--r-drop);
+  color: var(--ink2);
+}
+
+.warnText {
+  color: var(--r-bulk);
+}
+
 .reset {
   margin-left: auto;
   flex: 0 0 auto;

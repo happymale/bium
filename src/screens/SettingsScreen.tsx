@@ -1,10 +1,12 @@
 import { useEffect, useState } from 'react'
-import { Screen } from '../components/Screen'
+import { Screen, Stub } from '../components/Screen'
+import { AccountSection } from '../components/AccountSection'
+import { REGION_OPTIONS } from '../data/regions'
 import { CONFIDENCE_THRESHOLD, MODEL_LABEL } from '../lib/classify'
+import { NATIONWIDE, useActiveRegion } from '../lib/activeRegion'
 import { supabaseEnabled } from '../lib/supabase'
-import { CURRENT_REGION, PERSONA } from '../data/region'
-import { SDM_FEE_SOURCE } from '../data/sdmBulkFees'
 import { useItems } from '../store/items'
+import { useProfile } from '../store/profile'
 import { useSettings } from '../store/settings'
 import { useTheme } from '../store/theme'
 import s from './SettingsScreen.module.css'
@@ -17,6 +19,11 @@ export function SettingsScreen() {
   const demoMode = useSettings((st) => st.demoMode)
   const setDemoMode = useSettings((st) => st.setDemoMode)
 
+  const { nickname, dong, regionId } = useProfile()
+  const setProfile = useProfile((st) => st.setProfile)
+  const regionOpt = useActiveRegion()
+  const fees = regionOpt.fees
+
   // API 키가 서버에 있는지 — 키 값 자체는 절대 내려오지 않고 있음/없음만 받습니다
   const [hasKey, setHasKey] = useState<boolean | null>(null)
   useEffect(() => {
@@ -28,98 +35,94 @@ export function SettingsScreen() {
 
   return (
     <Screen title="설정">
-      <h2 className={s.groupTitle}>화면</h2>
+      {/* ── 프로필 ── */}
+      <h2 className={s.groupTitle}>내 정보</h2>
       <div className={s.group}>
-        <div className={s.row}>
-          <div>
-            <div className={s.rowLabel}>다크모드</div>
-            <div className={s.rowSub}>
-              끄면 시스템 설정과 무관하게 라이트로 고정됩니다
-            </div>
-          </div>
-          <button
-            type="button"
-            role="switch"
-            aria-checked={theme === 'dark'}
-            aria-label="다크모드"
-            className={s.switch}
-            onClick={toggle}
+        <label className={s.stack}>
+          <span className={s.rowLabel}>이름</span>
+          <input
+            className={s.input}
+            value={nickname}
+            maxLength={20}
+            onChange={(e) => setProfile({ nickname: e.target.value })}
+          />
+        </label>
+
+        <label className={s.stack}>
+          <span className={s.rowLabel}>사는 지역</span>
+          <span className={s.rowSub}>
+            배출 규정·수수료·문의처가 이 값을 따릅니다
+          </span>
+          <select
+            className={s.select}
+            value={regionId}
+            onChange={(e) => setProfile({ regionId: e.target.value })}
           >
-            <span className={s.knob} />
-          </button>
-        </div>
+            {REGION_OPTIONS.map((r) => (
+              <option key={r.id} value={r.id}>
+                {r.name}
+                {r.supported ? '' : ' (요금표 준비 중)'}
+              </option>
+            ))}
+          </select>
+          {!regionOpt.supported && (
+            <p className={`${s.msg} ${s.msgErr}`}>
+              {regionOpt.name} 요금표는 아직 없습니다. 처리 경로는 판별되지만
+              대형폐기물 <b>수수료는 금액 대신 구청 문의로 안내</b>됩니다.
+            </p>
+          )}
+        </label>
+
+        <label className={s.stack}>
+          <span className={s.rowLabel}>동</span>
+          <input
+            className={s.input}
+            value={dong}
+            maxLength={20}
+            placeholder="예: 신촌동"
+            onChange={(e) => setProfile({ dong: e.target.value })}
+          />
+        </label>
       </div>
 
-      <h2 className={s.groupTitle}>지역 · 배출 규정</h2>
+      {/* ── 계정 ── */}
+      <AccountSection />
+
+      {/* ── 배출 규정 ── */}
+      <h2 className={s.groupTitle}>배출 규정</h2>
       <div className={s.group}>
-        <div className={s.row}>
-          <div>
-            <div className={s.rowLabel}>우리 동네</div>
-            <div className={s.rowSub}>배출 규정과 수수료의 기준이 됩니다</div>
-          </div>
-          <span className={s.rowValue}>{PERSONA.label}</span>
-        </div>
         <div className={s.row}>
           <div>
             <div className={s.rowLabel}>대형폐기물 요금표</div>
             <div className={s.rowSub}>
-              {CURRENT_REGION.name}청 고시 ·{' '}
-              <span className="tnum">{SDM_FEE_SOURCE.rowCount}</span>개 품목
+              {fees
+                ? `${fees.source.authority} 고시 · ${fees.source.rowCount}개 품목`
+                : `${regionOpt.name} 요금표 미확보`}
             </div>
           </div>
           <span className={`${s.rowValue} tnum`}>
-            확인 {CURRENT_REGION.bulk.checkedOn}
+            {fees ? `확인 ${fees.source.checkedOn}` : '준비 중'}
           </span>
         </div>
         <div className={s.row}>
           <div>
             <div className={s.rowLabel}>폐가전 무상방문수거</div>
-            <div className={s.rowSub}>{CURRENT_REGION.freePickup.operator}</div>
+            <div className={s.rowSub}>{NATIONWIDE.operator} · 전국 공통</div>
           </div>
-          <span className={`${s.rowValue} tnum`}>
-            {CURRENT_REGION.freePickup.phone}
-          </span>
+          <span className={`${s.rowValue} tnum`}>{NATIONWIDE.phone}</span>
         </div>
-        <div className={s.row}>
-          <div>
-            <div className={s.rowLabel}>대형폐기물 신고 문의</div>
-            <div className={s.rowSub}>{CURRENT_REGION.name}청 청소행정과</div>
+        {fees && (
+          <div className={s.row}>
+            <div>
+              <div className={s.rowLabel}>대형폐기물 신고 문의</div>
+              <div className={s.rowSub}>{fees.source.authority}</div>
+            </div>
+            <span className={`${s.rowValue} tnum`}>{fees.phone}</span>
           </div>
-          <span className={`${s.rowValue} tnum`}>
-            {CURRENT_REGION.bulk.phone}
-          </span>
-        </div>
+        )}
       </div>
 
-      <h2 className={s.groupTitle}>데이터</h2>
-      <div className={s.group}>
-        <div className={s.row}>
-          <div>
-            <div className={s.rowLabel}>저장 위치</div>
-            <div className={s.rowSub}>
-              {supabaseEnabled
-                ? '클라우드에 저장되어 다른 기기에서도 이어집니다'
-                : '이 기기에만 저장됩니다. 브라우저 데이터를 지우면 사라집니다'}
-            </div>
-          </div>
-          <span className={s.rowValue}>
-            {supabaseEnabled ? '클라우드 동기화' : '기기 전용'}
-          </span>
-        </div>
-        <div className={s.row}>
-          <div>
-            <div className={s.rowLabel}>비움 목록 초기화</div>
-            <div className={s.rowSub}>
-              저장된 물건 <span className="tnum">{items.length}</span>개를 지우고
-              시연용 기본값으로 되돌립니다
-            </div>
-          </div>
-          <button type="button" className={s.reset} onClick={resetToSeed}>
-            초기화
-          </button>
-        </div>
-      </div>
-
+      {/* ── AI 판별 ── */}
       <h2 className={s.groupTitle}>AI 판별</h2>
       <div className={s.group}>
         <div className={s.row}>
@@ -168,6 +171,61 @@ export function SettingsScreen() {
           </span>
         </div>
       </div>
+
+      {/* ── 화면 ── */}
+      <h2 className={s.groupTitle}>화면</h2>
+      <div className={s.group}>
+        <div className={s.row}>
+          <div>
+            <div className={s.rowLabel}>다크모드</div>
+            <div className={s.rowSub}>
+              끄면 시스템 설정과 무관하게 라이트로 고정됩니다
+            </div>
+          </div>
+          <button
+            type="button"
+            role="switch"
+            aria-checked={theme === 'dark'}
+            aria-label="다크모드"
+            className={s.switch}
+            onClick={toggle}
+          >
+            <span className={s.knob} />
+          </button>
+        </div>
+      </div>
+
+      {/* ── 데이터 ── */}
+      <h2 className={s.groupTitle}>데이터</h2>
+      <div className={s.group}>
+        <div className={s.row}>
+          <div>
+            <div className={s.rowLabel}>저장 위치</div>
+            <div className={s.rowSub}>
+              {supabaseEnabled
+                ? '클라우드에 저장되어 다른 기기에서도 이어집니다'
+                : '이 기기에만 저장됩니다. 브라우저 데이터를 지우면 사라집니다'}
+            </div>
+          </div>
+          <span className={s.rowValue}>
+            {supabaseEnabled ? '클라우드 동기화' : '기기 전용'}
+          </span>
+        </div>
+        <div className={s.row}>
+          <div>
+            <div className={s.rowLabel}>비움 목록 초기화</div>
+            <div className={s.rowSub}>
+              저장된 물건 <span className="tnum">{items.length}</span>개를 지우고
+              시연용 기본값으로 되돌립니다
+            </div>
+          </div>
+          <button type="button" className={s.reset} onClick={resetToSeed}>
+            초기화
+          </button>
+        </div>
+      </div>
+
+      <Stub step="다음">전용 수거함 실제 위치 데이터 · 지자체 요금표 확대</Stub>
 
       <p className={s.foot}>
         비움 BIUM · 버리는 법을 몰라서, 아직 집에 있습니다

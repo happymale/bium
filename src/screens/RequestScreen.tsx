@@ -2,7 +2,8 @@ import { useState } from 'react'
 import { useNavigate, useParams } from 'react-router'
 import { Screen } from '../components/Screen'
 import { ROUTE_BY_ID } from '../data/routeKinds'
-import { CURRENT_REGION, DESTINATION } from '../data/region'
+import { DESTINATION } from '../data/region'
+import { useActiveRegion } from '../lib/activeRegion'
 import { useItems } from '../store/items'
 import { formatWon } from '../lib/fees'
 import { analytics } from '../lib/analytics'
@@ -28,6 +29,7 @@ export function RequestScreen() {
   const navigate = useNavigate()
   const item = useItems((st) => st.items.find((i) => i.id === id))
   const setStatus = useItems((st) => st.setStatus)
+  const regionOpt = useActiveRegion()
   const [approved, setApproved] = useState(false)
 
   if (!item) {
@@ -47,7 +49,7 @@ export function RequestScreen() {
   const steps = [
     {
       title: '품목 매칭',
-      sub: `${CURRENT_REGION.name} 요금표에서 “${item.feeMatchedName ?? item.name}”${
+      sub: `${regionOpt.name} 요금표에서 “${item.feeMatchedName ?? item.name}”${
         item.feeSpec ? ` · ${item.feeSpec}` : ''
       } 확인 · 수수료 ${formatWon(item.fee)}`,
       state: 'done' as const,
@@ -90,7 +92,7 @@ export function RequestScreen() {
         <div>
           <div className={s.nm}>{item.name}</div>
           <div className={s.sub}>
-            {CURRENT_REGION.name} 대형폐기물 인터넷 신고
+            {regionOpt.name} 대형폐기물 인터넷 신고
           </div>
         </div>
       </div>
@@ -111,7 +113,7 @@ export function RequestScreen() {
 
       <div className={s.bill}>
         <div className={s.row}>
-          <span>{CURRENT_REGION.name} 대형폐기물 수수료</span>
+          <span>{regionOpt.name} 대형폐기물 수수료</span>
           <span className="tnum">{formatWon(item.fee)}</span>
         </div>
         <div className={s.row}>

@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { useNavigate } from 'react-router'
 import { Screen } from '../components/Screen'
 import { ROUTE_BY_ID, ROUTE_KINDS, type RouteId } from '../data/routeKinds'
-import { CURRENT_REGION } from '../data/region'
+import { NATIONWIDE } from '../lib/activeRegion'
 import { byIdleDesc, pendingItems, useItems } from '../store/items'
 import { daysIdle, type Item } from '../types'
 import { formatWon } from '../lib/fees'
@@ -41,14 +41,14 @@ export function ListScreen() {
             {easiest.route === 'drop' ? (
               <>
                 <b>{easiest.name}</b>
-                {topic(easiest.name)} 전용 수거함에 넣기만 하면 됩니다.{' '}
-                {CURRENT_REGION.dropOff[0].where}에서 <b>0원</b>.
+                {topic(easiest.name)} 전용 수거함에 넣기만 하면 됩니다. 주민센터
+                · 아파트 단지 수거함에서 <b>0원</b>.
               </>
             ) : easiest.route === 'free' ? (
               <>
                 <b>{easiest.name}</b>
                 {topic(easiest.name)} 문 앞에 두면 무상으로 가져갑니다. 수수료{' '}
-                <b>0원</b> · {CURRENT_REGION.freePickup.phone}
+                <b>0원</b> · {NATIONWIDE.phone}
               </>
             ) : (
               <>

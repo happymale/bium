@@ -1,5 +1,15 @@
-import { SDM_BULK_FEES, type FeeRow } from '../data/sdmBulkFees'
+import type { FeeRow } from '../data/sdmBulkFees'
 import type { RouteId } from '../data/routeKinds'
+import { getActiveRegion } from './activeRegion'
+
+/**
+ * 현재 선택된 지역의 요금표.
+ * 요금표가 없는 지역이면 빈 배열이라 모든 조회가 "매칭 없음" 이 됩니다 —
+ * 다른 구의 요금이 새어 들어가지 않도록 하기 위한 기본값입니다.
+ */
+function feeRows(): FeeRow[] {
+  return getActiveRegion().fees?.rows ?? []
+}
 
 /**
  * 요금표 조회.
@@ -83,8 +93,8 @@ export function lookupFee(query: string): FeeLookup | null {
   const q = canonical(query)
   if (!q) return null
 
-  const exact = SDM_BULK_FEES.filter((r) => normalize(r.name) === q)
-  const partial = SDM_BULK_FEES.filter((r) => {
+  const exact = feeRows().filter((r) => normalize(r.name) === q)
+  const partial = feeRows().filter((r) => {
     const n = normalize(r.name)
     return n.includes(q) || q.includes(n)
   })
@@ -176,7 +186,7 @@ function stripSpecTokens(query: string): string {
 export function exactFee(name: string, spec: string): number | null {
   const n = normalize(name)
   const s = normalize(spec)
-  const hit = SDM_BULK_FEES.find(
+  const hit = feeRows().find(
     (r) => normalize(r.name) === n && normalize(r.spec) === s,
   )
   return hit ? hit.fee : null

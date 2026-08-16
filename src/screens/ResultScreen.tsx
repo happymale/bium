@@ -1,7 +1,8 @@
 import { useNavigate, useParams } from 'react-router'
 import { Screen } from '../components/Screen'
 import { ROUTE_BY_ID } from '../data/routeKinds'
-import { CURRENT_REGION, DESTINATION } from '../data/region'
+import { DESTINATION } from '../data/region'
+import { NATIONWIDE, useActiveRegion } from '../lib/activeRegion'
 import { useItems } from '../store/items'
 import { formatWon, lookupFee } from '../lib/fees'
 import { analytics } from '../lib/analytics'
@@ -35,13 +36,13 @@ function costLine(item: Item): { text: string; paid: boolean } {
   }
 }
 
-/** 근거 문장 — AI 판별(4단계) 전까지는 요금표에서 생성합니다. */
-function basisText(item: Item): string {
+/** 근거 문장 — AI 가 근거를 주지 않았을 때 요금표에서 생성합니다. */
+function basisText(item: Item, regionName: string, supported: boolean): string {
   if (item.basis) return item.basis
-  const hit = lookupFee(item.feeMatchedName ?? item.name)
+  const hit = supported ? lookupFee(item.feeMatchedName ?? item.name) : null
 
   if (item.route === 'free') {
-    return `모터·전기부품이 있는 폐가전입니다. ${CURRENT_REGION.name}는 원형이 보전된 폐가전을 대형폐기물이 아니라 무상방문수거로 처리하기 때문에 요금표에도 0원으로 고시돼 있습니다.`
+    return `모터·전기부품이 있는 폐가전입니다. 원형이 보전된 폐가전은 대형폐기물이 아니라 폐가전 무상방문수거로 처리하므로 수수료가 들지 않습니다.`
   }
   if (item.route === 'drop') {
     return `유해물질이 들어 있어 일반 배출이 불가능합니다. 전용 수거함으로만 배출할 수 있으며 비용은 들지 않습니다.`
@@ -50,8 +51,11 @@ function basisText(item: Item): string {
     const cf = hit ? `대형폐기물로 신고하면 ${formatWon(hit.minFee)}이 들지만, ` : ''
     return `${cf}상태가 양호해 아직 쓸 수 있는 물건입니다. 기부·재사용 경로로 보내면 수거 비용 없이 다음 사용자에게 갑니다.`
   }
+  if (!supported) {
+    return `부피가 큰 비전자 폐기물이라 대형폐기물 신고 대상입니다. 다만 ${regionName} 요금표는 아직 확보하지 못해 정확한 수수료를 안내할 수 없습니다. 구청에 문의해 주세요.`
+  }
   const spec = item.feeSpec ? ` · 규격 “${item.feeSpec}”` : ''
-  return `${CURRENT_REGION.name} 대형폐기물 요금표의 “${item.feeMatchedName ?? item.name}”${spec} 항목에 해당합니다. 신고 후 배출 스티커 번호를 받아 부착해야 합니다.`
+  return `${regionName} 대형폐기물 요금표의 “${item.feeMatchedName ?? item.name}”${spec} 항목에 해당합니다. 신고 후 배출 스티커 번호를 받아 부착해야 합니다.`
 }
 
 export function ResultScreen() {
@@ -60,6 +64,8 @@ export function ResultScreen() {
   const item = useItems((st) => st.items.find((i) => i.id === id))
   const setStatus = useItems((st) => st.setStatus)
   const remove = useItems((st) => st.remove)
+  const regionOpt = useActiveRegion()
+  const fees = regionOpt.fees ?? null
 
   if (!item) {
     return (
@@ -73,7 +79,9 @@ export function ResultScreen() {
 
   const kind = ROUTE_BY_ID[item.route]
   const cost = costLine(item)
-  const cf = lookupFee(item.feeMatchedName ?? item.name)
+  const cf = regionOpt.supported
+    ? lookupFee(item.feeMatchedName ?? item.name)
+    : null
   const showCounterfactual = item.route !== 'bulk' && cf && cf.minFee > 0
 
   return (
@@ -119,10 +127,11 @@ export function ResultScreen() {
       </div>
 
       <div className={s.basis}>
-        {basisText(item)}
+        {basisText(item, regionOpt.name, regionOpt.supported)}
         <span className={s.stamp}>
-          근거: {CURRENT_REGION.name} 대형폐기물 요금표 · 규정 확인일{' '}
-          {CURRENT_REGION.bulk.checkedOn}
+          {fees
+            ? `근거: ${regionOpt.name} 대형폐기물 요금표 · 규정 확인일 ${fees.source.checkedOn}`
+            : `${regionOpt.name} 요금표 미확보 · 금액은 구청 확인이 필요합니다`}
         </span>
       </div>
 
@@ -160,7 +169,7 @@ export function ResultScreen() {
             배출 완료 표시하기
           </button>
         </>
-      ) : item.route === 'bulk' ? (
+      ) : item.route === 'bulk' && fees ? (
         <button
           type="button"
           className={s.cta}
@@ -168,6 +177,15 @@ export function ResultScreen() {
         >
           신청 대행 맡기기
         </button>
+      ) : item.route === 'bulk' ? (
+        // 요금표가 없는 지역은 대행 신청을 걸 수 없습니다 —
+        // 얼마를 결제할지 모르는 채로 승인 화면을 띄우면 안 됩니다.
+        <div className={s.doneBox}>
+          <b>{regionOpt.name}는 아직 요금표가 없습니다.</b>
+          <br />
+          처리 경로는 대형폐기물이 맞지만, 정확한 수수료는 구청에서 확인해
+          주세요. 요금표가 확보되면 신청 대행이 열립니다.
+        </div>
       ) : (
         <button
           type="button"
@@ -185,12 +203,23 @@ export function ResultScreen() {
         </button>
       )}
 
-      <a
-        className={`${s.cta} ${s.ghost} ${s.linkBtn}`}
-        href={`tel:${CURRENT_REGION.bulk.phone.replace(/-/g, '')}`}
-      >
-        확실하지 않아요 · 구청에 물어보기
-      </a>
+      {fees ? (
+        <a
+          className={`${s.cta} ${s.ghost} ${s.linkBtn}`}
+          href={`tel:${fees.phone.replace(/-/g, '')}`}
+        >
+          확실하지 않아요 · 구청에 물어보기
+        </a>
+      ) : (
+        <a
+          className={`${s.cta} ${s.ghost} ${s.linkBtn}`}
+          href={`https://www.google.com/search?q=${encodeURIComponent(regionOpt.name + ' 대형폐기물 신고')}`}
+          target="_blank"
+          rel="noreferrer"
+        >
+          {regionOpt.name} 대형폐기물 신고처 찾기
+        </a>
+      )}
 
       <button
         type="button"
@@ -211,15 +240,15 @@ export function ResultScreen() {
           물건입니다
         </p>
       )}
-      {item.route === 'bulk' && (
+      {item.route === 'bulk' && fees && (
         <p className={s.alt}>
-          {CURRENT_REGION.name}청 신고 문의 <b>{CURRENT_REGION.bulk.phone}</b>
+          {regionOpt.name}청 신고 문의 <b>{fees.phone}</b>
         </p>
       )}
+      {/* 폐가전 무상방문수거는 전국 공통이라 지역과 무관하게 안내할 수 있습니다 */}
       {item.route === 'free' && (
         <p className={s.alt}>
-          {CURRENT_REGION.freePickup.operator}{' '}
-          <b>{CURRENT_REGION.freePickup.phone}</b>
+          {NATIONWIDE.operator} <b>{NATIONWIDE.phone}</b>
         </p>
       )}
     </Screen>

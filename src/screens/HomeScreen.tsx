@@ -1,7 +1,8 @@
 import { useNavigate } from 'react-router'
 import { Screen } from '../components/Screen'
 import { ROUTE_KINDS } from '../data/routeKinds'
-import { CURRENT_REGION, PERSONA } from '../data/region'
+import { useActiveRegion } from '../lib/activeRegion'
+import { useProfile } from '../store/profile'
 import { pendingItems, useItems } from '../store/items'
 import { pickToday, reasonFor } from '../lib/recommend'
 import { subject } from '../lib/korean'
@@ -11,6 +12,9 @@ import s from './HomeScreen.module.css'
 export function HomeScreen() {
   const navigate = useNavigate()
   const items = useItems((st) => st.items)
+  const region = useActiveRegion()
+  const nickname = useProfile((st) => st.nickname)
+  const dong = useProfile((st) => st.dong)
 
   const waiting = pendingItems(items)
   // 가장 오래된 것이 아니라 "오늘 당장 처리할 수 있는 것"을 권합니다
@@ -19,7 +23,8 @@ export function HomeScreen() {
   return (
     <Screen title="비움 BIUM">
       <p className={s.hello}>
-        <b>{PERSONA.name}</b> 님 · {CURRENT_REGION.name} {PERSONA.dong}
+        <b>{nickname}</b> 님 · {region.name}
+        {dong ? ` ${dong}` : ''}
       </p>
 
       <section className={s.nudge}>

@@ -1,6 +1,7 @@
 import type { RouteId } from '../data/routeKinds'
 import type { Item } from '../types'
 import { lookupFee, resolveFee } from './fees'
+import { getActiveRegion } from './activeRegion'
 import type { PreparedImage } from './image'
 
 /**
@@ -72,6 +73,25 @@ export async function classifyImage(
 
 /** AI 판단 + 실제 요금표 → 저장 가능한 물건 초안 */
 export function merge(c: Classification, photo?: string): ClassifyOutcome {
+  // 요금표를 갖춘 지역에서만 금액을 계산합니다.
+  // 다른 구 요금을 대신 보여주면 사용자가 틀린 금액을 믿고 배출하게 됩니다.
+  const regionSupported = getActiveRegion().supported
+  if (!regionSupported) {
+    return {
+      classification: c,
+      draft: {
+        name: c.itemName,
+        route: c.route,
+        fee: 0,
+        photo,
+        confidence: c.confidence,
+        basis: c.basis,
+      },
+      uncertain: c.confidence < CONFIDENCE_THRESHOLD,
+      feeUnknown: true,
+    }
+  }
+
   const hit = lookupFee(c.feeQuery || c.itemName)
 
   // 요금표가 이 품목을 무상(0원)으로 고시했는데 AI 가 bulk 라고 했다면,
