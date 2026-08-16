@@ -4,6 +4,7 @@ import { Screen } from '../components/Screen'
 import { ROUTE_BY_ID } from '../data/routeKinds'
 import { CURRENT_REGION } from '../data/region'
 import { useItems } from '../store/items'
+import { useSettings } from '../store/settings'
 import {
   CONFIDENCE_THRESHOLD,
   classifyImage,
@@ -19,6 +20,7 @@ type Phase = 'idle' | 'working' | 'done' | 'error'
 export function CaptureScreen() {
   const navigate = useNavigate()
   const addItem = useItems((st) => st.add)
+  const demoMode = useSettings((st) => st.demoMode)
 
   const cameraRef = useRef<HTMLInputElement>(null)
   const albumRef = useRef<HTMLInputElement>(null)
@@ -37,7 +39,7 @@ export function CaptureScreen() {
     try {
       const prepared = await prepareImage(file)
       setImage(prepared)
-      const result = await classifyImage(prepared)
+      const result = await classifyImage(prepared, { forceMock: demoMode })
       setOutcome(result)
       setPhase('done')
 

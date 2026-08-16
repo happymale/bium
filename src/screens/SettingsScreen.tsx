@@ -4,6 +4,7 @@ import { CONFIDENCE_THRESHOLD, MODEL_LABEL } from '../lib/classify'
 import { CURRENT_REGION, PERSONA } from '../data/region'
 import { SDM_FEE_SOURCE } from '../data/sdmBulkFees'
 import { useItems } from '../store/items'
+import { useSettings } from '../store/settings'
 import { useTheme } from '../store/theme'
 import s from './SettingsScreen.module.css'
 
@@ -12,6 +13,8 @@ export function SettingsScreen() {
   const toggle = useTheme((st) => st.toggle)
   const items = useItems((st) => st.items)
   const resetToSeed = useItems((st) => st.resetToSeed)
+  const demoMode = useSettings((st) => st.demoMode)
+  const setDemoMode = useSettings((st) => st.setDemoMode)
 
   // API 키가 서버에 있는지 — 키 값 자체는 절대 내려오지 않고 있음/없음만 받습니다
   const [hasKey, setHasKey] = useState<boolean | null>(null)
@@ -119,6 +122,25 @@ export function SettingsScreen() {
           <span className={s.rowValue}>
             {hasKey == null ? '—' : hasKey ? '실제 AI' : '데모'}
           </span>
+        </div>
+        <div className={s.row}>
+          <div>
+            <div className={s.rowLabel}>데모 모드</div>
+            <div className={s.rowSub}>
+              켜면 API 를 호출하지 않고 준비된 예시로 시연합니다. 비용이 들지
+              않고 네트워크가 끊겨도 동작합니다.
+            </div>
+          </div>
+          <button
+            type="button"
+            role="switch"
+            aria-checked={demoMode}
+            aria-label="데모 모드"
+            className={s.switch}
+            onClick={() => setDemoMode(!demoMode)}
+          >
+            <span className={s.knob} />
+          </button>
         </div>
         <div className={s.row}>
           <div>
