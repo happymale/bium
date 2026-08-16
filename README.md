@@ -89,20 +89,24 @@ SQL Editor에서 실행하고, **Authentication → Anonymous Sign-Ins를 켜야
 2. Environment Variables 등록 → **Redeploy** (빌드 캐시 해제)
 3. `/api/status`가 `{"hasApiKey":true}`면 성공
 
-새 자치구 요금표를 추가하려면 `src/data/fees/`에 파일 하나와 등록 한 줄이면 됩니다.
+요금표 원문은 `scripts/collect_seoul_fees.py`로 수집하고,
+`scripts/build_seoul_fee_data.py`로 정규화해 `src/data/fees/seoul.generated.ts`를 갱신합니다.
+강북구 CSV는 열린데이터광장에서 `gangbuk.csv`로 받아 같은 입력 폴더에 둡니다.
 아이콘은 `node scripts/gen-icons.mjs`로 다시 생성합니다.
 
 ---
 
 ## 데이터 출처
 
-- [서대문구 대형폐기물 수수료](https://www.sdm.go.kr/civil/print/waste/standards.do) — 218개 품목
-- [종로구 대형폐기물 수수료](https://jongno.go.kr/waste/pc/web/expense/selectExpenseList.do) — 159개 품목
+- [행정안전부 자치법규정보시스템](https://www.elis.go.kr/) — 서울 22개 자치구의 현행 조례·별표
+- [강북구 열린데이터광장](https://data.gangbuk.go.kr/openinf/sheetview.jsp?infId=OA-11585) — 강북구 316개 규격
+- [노원구 대형폐기물 신고시스템](https://smartclean.nowon.kr/online/bulky/item) — 노원구 718개 규격
+- [송파구 대형폐기물 신고시스템](https://smartclean.songpa.go.kr/online/bulky/item) — 송파구 275개 규격
 - [폐가전 무상방문수거](https://15990903.or.kr) 1599-0903 (전국)
 - [스마트서울맵 폐건전지 수거함](https://map.seoul.go.kr/smgis2/short/6Ntl8) — 6,138곳
 
 모두 2026-08-16 수집. 구청 고시가 바뀌면 달라지며, 앱 설정 화면에 **확인일**을 표시합니다.
-요금표가 없는 자치구는 금액 대신 구청 문의로 안내합니다 — 다른 구 요금을 대신 쓰지 않습니다.
+총 7,055개 품목·규격을 자치구별로 분리해 사용하며, 다른 구 요금을 대신 쓰지 않습니다.
 
 ---
 
@@ -110,6 +114,6 @@ SQL Editor에서 실행하고, **Authentication → Anonymous Sign-Ins를 켜야
 
 - **신청 대행은 개념 시연입니다.** 실제 신고·결제가 일어나지 않습니다. 지자체 제휴·정산 계약과 통신판매업 신고가 필요합니다.
 - **무상수거·기부·수거함은 대신 신청해 주지 않습니다.** 실제 창구로 연결하고, 다녀온 뒤 직접 표시합니다.
-- 요금표는 서울 25개 구 중 **2개 구**만 갖췄습니다.
+- 요금표는 서울 **25개 구 전체**를 갖췄습니다. 조례 개정 시 수집 스크립트로 갱신해야 합니다.
 - 전용 수거함은 서울시 지도로 연결할 뿐, 앱 안에 좌표 데이터는 없습니다.
 - 사용자가 늘면 **API 비용이 판별 횟수에 비례**합니다 (호출 제한 필요).

@@ -1,7 +1,7 @@
 import { useNavigate, useParams } from 'react-router'
 import { Screen } from '../components/Screen'
 import { ROUTE_BY_ID } from '../data/routeKinds'
-import { DESTINATION } from '../data/region'
+import { destinationFor } from '../data/region'
 import { ACTION_LINKS } from '../data/actionLinks'
 import { NATIONWIDE, useActiveRegion } from '../lib/activeRegion'
 import { useItems } from '../store/items'
@@ -132,7 +132,9 @@ export function ResultScreen() {
         {basisText(item, regionOpt.name, regionOpt.supported)}
         <span className={s.stamp}>
           {fees
-            ? `근거: ${regionOpt.name} 대형폐기물 요금표 · 규정 확인일 ${fees.source.checkedOn}`
+            ? `근거: ${regionOpt.name} 대형폐기물 요금표 · 확인 ${fees.source.checkedOn}${
+                fees.source.effectiveOn ? ` · 시행 ${fees.source.effectiveOn}` : ''
+              }`
             : `${regionOpt.name} 요금표 미확보 · 금액은 구청 확인이 필요합니다`}
         </span>
       </div>
@@ -163,7 +165,11 @@ export function ResultScreen() {
             type="button"
             className={s.cta}
             onClick={() => {
-              setStatus(item.id, 'done', DESTINATION[item.route].completed)
+              setStatus(
+                item.id,
+                'done',
+                destinationFor(item.route, regionOpt.name).completed,
+              )
               analytics.itemDisposed(item.route)
               navigate('/report')
             }}
@@ -198,7 +204,11 @@ export function ResultScreen() {
             type="button"
             className={`${s.cta} ${s.ghost}`}
             onClick={() =>
-              setStatus(item.id, 'requested', DESTINATION[item.route].reserved)
+              setStatus(
+                item.id,
+                'requested',
+                destinationFor(item.route, regionOpt.name).reserved,
+              )
             }
           >
             신고했어요
@@ -238,11 +248,19 @@ export function ResultScreen() {
             className={`${s.cta} ${s.ghost}`}
             onClick={() => {
               if (action.hasReservation) {
-                setStatus(item.id, 'requested', DESTINATION[item.route].reserved)
+                setStatus(
+                  item.id,
+                  'requested',
+                  destinationFor(item.route, regionOpt.name).reserved,
+                )
                 analytics.requestApproved(item.route, 0)
               } else {
                 // 수거함은 예약 단계가 없습니다 — 넣고 오면 그걸로 끝입니다
-                setStatus(item.id, 'done', DESTINATION[item.route].completed)
+                setStatus(
+                  item.id,
+                  'done',
+                  destinationFor(item.route, regionOpt.name).completed,
+                )
                 analytics.itemDisposed(item.route)
                 navigate('/report')
               }

@@ -2,7 +2,6 @@ import { useRef, useState } from 'react'
 import { useNavigate } from 'react-router'
 import { Screen } from '../components/Screen'
 import { ROUTE_BY_ID } from '../data/routeKinds'
-import { CURRENT_REGION } from '../data/region'
 import { useItems } from '../store/items'
 import { useSettings } from '../store/settings'
 import {
@@ -15,12 +14,14 @@ import { formatWon } from '../lib/fees'
 import { analytics, confidenceBucket } from '../lib/analytics'
 import { supabaseEnabled } from '../lib/supabase'
 import { uploadPhoto } from '../lib/sync'
+import { useActiveRegion } from '../lib/activeRegion'
 import s from './CaptureScreen.module.css'
 
 type Phase = 'idle' | 'working' | 'done' | 'error'
 
 export function CaptureScreen() {
   const navigate = useNavigate()
+  const regionOpt = useActiveRegion()
   const addItem = useItems((st) => st.add)
   const updateItem = useItems((st) => st.update)
   const demoMode = useSettings((st) => st.demoMode)
@@ -174,7 +175,7 @@ export function CaptureScreen() {
               className={`${s.cost} ${outcome.draft.fee > 0 ? s.costPaid : ''}`}
             >
               {outcome.draft.fee > 0
-                ? `${formatWon(outcome.draft.fee)} · ${CURRENT_REGION.name} 요금표`
+                ? `${formatWon(outcome.draft.fee)} · ${regionOpt.name} 요금표`
                 : '0원'}
               {outcome.feeUnknown && ' · 요금표에 없는 품목'}
             </div>
@@ -195,7 +196,7 @@ export function CaptureScreen() {
           {outcome.uncertain ? (
             <div className={s.actions}>
               <button type="button" className={`${s.btn} ${s.wide}`}>
-                구청에 물어보기 · {CURRENT_REGION.bulk.phone}
+                구청에 물어보기 · {regionOpt.fees?.phone ?? '120'}
               </button>
               <button
                 type="button"

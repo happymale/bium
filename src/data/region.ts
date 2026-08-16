@@ -79,6 +79,17 @@ export const DESTINATION: Record<
   },
 }
 
+/** 선택한 자치구가 처리 기록에도 정확히 남도록 목적지를 계산합니다. */
+export function destinationFor(route: string, regionName: string) {
+  if (route === 'bulk') {
+    return {
+      reserved: `${regionName} 처리장 · 배출 신고됨`,
+      completed: `${regionName} 처리장 · 배출 완료`,
+    }
+  }
+  return DESTINATION[route]
+}
+
 /** 페르소나 — 1단계에서 "고정"으로 확정 */
 export const PERSONA = {
   name: '수현',

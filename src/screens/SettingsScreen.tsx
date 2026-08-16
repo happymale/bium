@@ -105,7 +105,9 @@ export function SettingsScreen() {
             <div className={s.rowLabel}>대형폐기물 요금표</div>
             <div className={s.rowSub}>
               {fees
-                ? `${fees.source.authority} 고시 · ${fees.source.rowCount}개 품목`
+                ? `${fees.source.authority} · ${fees.source.rowCount}개 규격${
+                    fees.source.effectiveOn ? ` · 시행 ${fees.source.effectiveOn}` : ''
+                  }`
                 : `${regionOpt.name} 요금표 미확보`}
             </div>
           </div>
@@ -267,7 +269,7 @@ export function SettingsScreen() {
         </div>
       </div>
 
-      <Stub step="다음">전용 수거함 실제 위치 데이터 · 지자체 요금표 확대</Stub>
+      <Stub step="다음">전용 수거함 실제 위치 데이터 · 자치구 요금표 자동 갱신</Stub>
 
       <p className={s.foot}>
         비움 BIUM · 버리는 법을 몰라서, 아직 집에 있습니다

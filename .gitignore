@@ -25,6 +25,8 @@ dist-ssr/
 build/
 out/
 *.local
+__pycache__/
+*.py[cod]
 
 # vite-plugin-pwa 가 개발 중 생성 (서비스워커 미리보기)
 dev-dist/
@@ -39,6 +41,7 @@ dev-dist/
 *.tsbuildinfo
 .cache/
 .temp/
+.tmp-*
 .turbo/
 .eslintcache
 
