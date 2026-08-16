@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Screen } from '../components/Screen'
 import { CONFIDENCE_THRESHOLD, MODEL_LABEL } from '../lib/classify'
+import { supabaseEnabled } from '../lib/supabase'
 import { CURRENT_REGION, PERSONA } from '../data/region'
 import { SDM_FEE_SOURCE } from '../data/sdmBulkFees'
 import { useItems } from '../store/items'
@@ -92,6 +93,19 @@ export function SettingsScreen() {
 
       <h2 className={s.groupTitle}>데이터</h2>
       <div className={s.group}>
+        <div className={s.row}>
+          <div>
+            <div className={s.rowLabel}>저장 위치</div>
+            <div className={s.rowSub}>
+              {supabaseEnabled
+                ? '클라우드에 저장되어 다른 기기에서도 이어집니다'
+                : '이 기기에만 저장됩니다. 브라우저 데이터를 지우면 사라집니다'}
+            </div>
+          </div>
+          <span className={s.rowValue}>
+            {supabaseEnabled ? '클라우드 동기화' : '기기 전용'}
+          </span>
+        </div>
         <div className={s.row}>
           <div>
             <div className={s.rowLabel}>비움 목록 초기화</div>

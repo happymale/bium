@@ -13,6 +13,8 @@ import {
 import { prepareImage, type PreparedImage } from '../lib/image'
 import { formatWon } from '../lib/fees'
 import { analytics, confidenceBucket } from '../lib/analytics'
+import { supabaseEnabled } from '../lib/supabase'
+import { uploadPhoto } from '../lib/sync'
 import s from './CaptureScreen.module.css'
 
 type Phase = 'idle' | 'working' | 'done' | 'error'
@@ -20,6 +22,7 @@ type Phase = 'idle' | 'working' | 'done' | 'error'
 export function CaptureScreen() {
   const navigate = useNavigate()
   const addItem = useItems((st) => st.add)
+  const updateItem = useItems((st) => st.update)
   const demoMode = useSettings((st) => st.demoMode)
 
   const cameraRef = useRef<HTMLInputElement>(null)
@@ -74,6 +77,14 @@ export function CaptureScreen() {
     analytics.itemAdded(outcome.draft.route, outcome.uncertain)
     const id = addItem(outcome.draft)
     navigate(`/result/${id}`)
+
+    // 원본 사진은 서버에 따로 올립니다 (로컬엔 320px 썸네일만 둡니다).
+    // 화면 전환을 막지 않도록 뒤에서 처리하고, 실패해도 무시합니다.
+    if (supabaseEnabled && image) {
+      void uploadPhoto(image.dataUrl).then((path) => {
+        if (path) updateItem(id, { photoPath: path })
+      })
+    }
   }
 
   const kind = outcome ? ROUTE_BY_ID[outcome.draft.route] : null
@@ -121,9 +132,19 @@ export function CaptureScreen() {
           {outcome.classification.source === 'mock' && (
             <div className={`${s.alert} ${s.alertWarn}`}>
               <div>
-                <b>데모 모드입니다.</b> API 키가 없어 미리 준비된 예시 응답을
-                보여주고 있습니다. <code>.env.local</code>에 키를 넣으면 실제
-                사진을 판별합니다.
+                {outcome.classification.reason === 'demo-mode' ? (
+                  <>
+                    <b>데모 모드입니다.</b> 실제 사진을 판별하지 않고 준비된
+                    예시를 보여주고 있습니다. 설정에서 데모 모드를 끄면 실제
+                    판별로 전환됩니다.
+                  </>
+                ) : (
+                  <>
+                    <b>API 키가 없습니다.</b> 미리 준비된 예시 응답을 보여주고
+                    있습니다. <code>.env.local</code>에 키를 넣으면 실제 사진을
+                    판별합니다.
+                  </>
+                )}
               </div>
             </div>
           )}

@@ -20,8 +20,10 @@ export type Item = {
   /** 요금표에서 매칭된 항목명 — 근거 문장에 인용 */
   feeMatchedName?: string
 
-  /** 촬영 사진 (dataURL). 4단계에서 채워집니다. */
+  /** 화면 표시용 320px 썸네일 (dataURL). 로컬에 보관합니다. */
   photo?: string
+  /** Supabase Storage 안의 원본 경로. 미연동 시 비어 있습니다. */
+  photoPath?: string
   /** AI 판별 확신도 0~1 */
   confidence?: number
   /** 왜 이 경로인지에 대한 한 문단 */

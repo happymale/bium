@@ -1,6 +1,7 @@
 import { create } from 'zustand'
 import { createJSONStorage, persist } from 'zustand/middleware'
 import { resilientLocalStorage } from './resilientStorage'
+import { pushItem, removeItem as removeRemote } from '../lib/sync'
 import type { Item, ItemStatus } from '../types'
 import { daysIdle } from '../types'
 import type { RouteId } from '../data/routeKinds'
@@ -164,47 +165,87 @@ type ItemsState = {
   setStatus: (id: string, status: ItemStatus, destination?: string) => void
   remove: (id: string) => void
   resetToSeed: () => void
+  /**
+   * 서버에서 받아온 목록을 현재 상태에 병합합니다 (앱 시작 시 1회).
+   *
+   * ⚠ 통째로 교체하면 안 됩니다. 동기화가 네트워크를 다녀오는 몇 초 사이에
+   *   사용자가 사진을 찍어 물건을 추가할 수 있고, 그러면 그 물건이 사라집니다.
+   *   같은 id 는 서버 값을 쓰고, 서버에 없는 로컬 물건은 그대로 둡니다.
+   */
+  mergeRemote: (remote: Item[]) => void
+}
+
+/**
+ * 서버 반영은 화면을 기다리게 하지 않습니다.
+ * Supabase 미연동이면 아무 일도 일어나지 않습니다.
+ */
+function syncUp(item: Item | undefined) {
+  if (item) void pushItem(item)
 }
 
 export const useItems = create<ItemsState>()(
   persist(
-    (set) => ({
+    (set, get) => ({
       items: seed(Date.now()),
 
       add: (draft) => {
         const id = crypto.randomUUID()
-        set((s) => ({
-          items: [
-            { ...draft, id, addedAt: Date.now(), status: 'pending' },
-            ...s.items,
-          ],
-        }))
+        const item: Item = {
+          ...draft,
+          id,
+          addedAt: Date.now(),
+          status: 'pending',
+        }
+        set((s) => ({ items: [item, ...s.items] }))
+        syncUp(item)
         return id
       },
 
-      update: (id, patch) =>
+      update: (id, patch) => {
+        let updated: Item | undefined
         set((s) => ({
-          items: s.items.map((it) => (it.id === id ? { ...it, ...patch } : it)),
-        })),
+          items: s.items.map((it) => {
+            if (it.id !== id) return it
+            updated = { ...it, ...patch }
+            return updated
+          }),
+        }))
+        syncUp(updated)
+      },
 
-      setStatus: (id, status, destination) =>
+      setStatus: (id, status, destination) => {
+        let updated: Item | undefined
         set((s) => ({
-          items: s.items.map((it) =>
-            it.id === id
-              ? {
-                  ...it,
-                  status,
-                  destination: destination ?? it.destination,
-                  disposedAt: status === 'done' ? Date.now() : it.disposedAt,
-                }
-              : it,
-          ),
-        })),
+          items: s.items.map((it) => {
+            if (it.id !== id) return it
+            updated = {
+              ...it,
+              status,
+              destination: destination ?? it.destination,
+              disposedAt: status === 'done' ? Date.now() : it.disposedAt,
+            }
+            return updated
+          }),
+        }))
+        syncUp(updated)
+      },
 
-      remove: (id) =>
-        set((s) => ({ items: s.items.filter((it) => it.id !== id) })),
+      remove: (id) => {
+        const target = get().items.find((it) => it.id === id)
+        set((s) => ({ items: s.items.filter((it) => it.id !== id) }))
+        if (target) void removeRemote(target)
+      },
 
       resetToSeed: () => set({ items: seed(Date.now()) }),
+
+      mergeRemote: (remote) =>
+        set((s) => {
+          const byId = new Map(s.items.map((i) => [i.id, i]))
+          for (const r of remote) byId.set(r.id, r) // 서버 값 우선
+          const merged = [...byId.values()]
+          merged.sort((a, b) => b.addedAt - a.addedAt)
+          return { items: merged }
+        }),
     }),
     {
       name: 'bium.items',
