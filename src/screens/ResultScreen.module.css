@@ -150,6 +150,41 @@
   margin-top: 8px;
 }
 
+/* 링크를 버튼처럼 (tel: 안내) */
+.linkBtn {
+  display: block;
+  text-align: center;
+  box-sizing: border-box;
+}
+
+.doneBox {
+  margin-top: 15px;
+  padding: 13px 14px;
+  border-radius: var(--radius-lg);
+  background: var(--brand-soft);
+  font-size: 13px;
+  line-height: 1.65;
+  color: var(--ink2);
+}
+
+.doneBox b {
+  color: var(--brand);
+}
+
+.remove {
+  display: block;
+  width: 100%;
+  margin-top: 18px;
+  border: 0;
+  background: none;
+  color: var(--muted);
+  font-size: 12.5px;
+  font-weight: 700;
+  padding: 8px 0;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
 .alt {
   margin-top: 12px;
   font-size: 12px;

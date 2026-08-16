@@ -53,6 +53,32 @@ export const SEODAEMUN: Region = {
 
 export const CURRENT_REGION = SEODAEMUN
 
+/**
+ * 경로별 기본 행선지 — 리포트의 "어디로 갔는지" 추적에 기록됩니다.
+ * 프로토타입이라 고정값이지만, 실제 서비스에서는 예약한 업체·지점이 들어갈 자리입니다.
+ */
+export const DESTINATION: Record<
+  string,
+  { reserved: string; completed: string }
+> = {
+  reuse: {
+    reserved: '아름다운가게 신촌점 · 픽업 예약됨',
+    completed: '아름다운가게 신촌점 · 기증 완료',
+  },
+  free: {
+    reserved: '폐가전 재활용센터 · 수거 예약됨',
+    completed: '폐가전 재활용센터 · 수거 완료',
+  },
+  bulk: {
+    reserved: `${SEODAEMUN.name} 처리장 · 배출 신고됨`,
+    completed: `${SEODAEMUN.name} 처리장 · 배출 완료`,
+  },
+  drop: {
+    reserved: '전용 수거함 · 배출 예정',
+    completed: '전용 수거함 · 투입 완료',
+  },
+}
+
 /** 페르소나 — 1단계에서 "고정"으로 확정 */
 export const PERSONA = {
   name: '수현',

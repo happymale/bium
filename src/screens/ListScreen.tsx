@@ -7,6 +7,7 @@ import { byIdleDesc, pendingItems, useItems } from '../store/items'
 import { daysIdle, type Item } from '../types'
 import { formatWon } from '../lib/fees'
 import { subject, topic } from '../lib/korean'
+import { pickToday } from '../lib/recommend'
 import s from './ListScreen.module.css'
 
 type Filter = 'all' | RouteId
@@ -28,13 +29,8 @@ export function ListScreen() {
   const waiting = byIdleDesc(pendingItems(items))
   const shown = filter === 'all' ? waiting : waiting.filter((i) => i.route === filter)
 
-  /**
-   * 넛지는 "가장 오래 기다린 물건"이 아니라 "지금 당장 처리할 수 있는 물건"을 고릅니다.
-   * (목업 ②의 설계 의도 2 — 가장 쉬운 것을 먼저 권한다)
-   * 무상 경로 중에서 가장 오래 기다린 것 → 없으면 전체 중 가장 오래된 것.
-   */
-  const easiest =
-    waiting.find((i) => i.route === 'drop' || i.route === 'free') ?? waiting[0]
+  // 홈과 같은 추천 로직을 씁니다 (lib/recommend.ts)
+  const easiest = pickToday(items)
 
   return (
     <Screen title="우리 집 비움 목록">

@@ -1,9 +1,10 @@
 import { useNavigate, useParams } from 'react-router'
 import { Screen } from '../components/Screen'
 import { ROUTE_BY_ID } from '../data/routeKinds'
-import { CURRENT_REGION } from '../data/region'
+import { CURRENT_REGION, DESTINATION } from '../data/region'
 import { useItems } from '../store/items'
 import { formatWon, lookupFee } from '../lib/fees'
+import { analytics } from '../lib/analytics'
 import type { Item } from '../types'
 import s from './ResultScreen.module.css'
 
@@ -57,6 +58,8 @@ export function ResultScreen() {
   const { id } = useParams()
   const navigate = useNavigate()
   const item = useItems((st) => st.items.find((i) => i.id === id))
+  const setStatus = useItems((st) => st.setStatus)
+  const remove = useItems((st) => st.remove)
 
   if (!item) {
     return (
@@ -131,7 +134,33 @@ export function ResultScreen() {
         </div>
       </div>
 
-      {item.route === 'bulk' ? (
+      {/* 상태에 따라 다음 할 일이 달라집니다: 대기 → 예약/신청 → 배출 완료 */}
+      {item.status === 'done' ? (
+        <div className={s.doneBox}>
+          <b>처리 완료</b>
+          <br />
+          {item.destination}
+        </div>
+      ) : item.status === 'requested' ? (
+        <>
+          <div className={s.doneBox}>
+            <b>{item.route === 'bulk' ? '신고 접수됨' : '예약 완료'}</b>
+            <br />
+            {item.destination}
+          </div>
+          <button
+            type="button"
+            className={s.cta}
+            onClick={() => {
+              setStatus(item.id, 'done', DESTINATION[item.route].completed)
+              analytics.itemDisposed(item.route)
+              navigate('/report')
+            }}
+          >
+            배출 완료 표시하기
+          </button>
+        </>
+      ) : item.route === 'bulk' ? (
         <button
           type="button"
           className={s.cta}
@@ -140,16 +169,40 @@ export function ResultScreen() {
           신청 대행 맡기기
         </button>
       ) : (
-        <button type="button" className={s.cta}>
+        <button
+          type="button"
+          className={s.cta}
+          onClick={() => {
+            setStatus(item.id, 'requested', DESTINATION[item.route].reserved)
+            analytics.requestApproved(item.route, 0)
+          }}
+        >
           {item.route === 'free'
             ? '무상수거 예약하기'
             : item.route === 'reuse'
               ? '기부 픽업 예약하기'
-              : '가까운 수거함 찾기'}
+              : '수거함에 넣으러 가기'}
         </button>
       )}
-      <button type="button" className={`${s.cta} ${s.ghost}`}>
+
+      <a
+        className={`${s.cta} ${s.ghost} ${s.linkBtn}`}
+        href={`tel:${CURRENT_REGION.bulk.phone.replace(/-/g, '')}`}
+      >
         확실하지 않아요 · 구청에 물어보기
+      </a>
+
+      <button
+        type="button"
+        className={s.remove}
+        onClick={() => {
+          if (confirm(`"${item.name}"을(를) 목록에서 지울까요?`)) {
+            remove(item.id)
+            navigate('/list')
+          }
+        }}
+      >
+        목록에서 삭제
       </button>
 
       {showCounterfactual && (

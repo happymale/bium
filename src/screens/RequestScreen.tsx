@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { useNavigate, useParams } from 'react-router'
 import { Screen } from '../components/Screen'
 import { ROUTE_BY_ID } from '../data/routeKinds'
-import { CURRENT_REGION } from '../data/region'
+import { CURRENT_REGION, DESTINATION } from '../data/region'
 import { useItems } from '../store/items'
 import { formatWon } from '../lib/fees'
 import { analytics } from '../lib/analytics'
@@ -150,7 +150,7 @@ export function RequestScreen() {
           className={s.cta}
           onClick={() => {
             setApproved(true)
-            setStatus(item.id, 'requested')
+            setStatus(item.id, 'requested', DESTINATION[item.route].reserved)
             analytics.requestApproved(item.route, total)
           }}
         >
