@@ -1,5 +1,5 @@
-import { handleClassify } from '../server/vitePlugin'
 import { DEFAULT_MODEL } from '../server/classify'
+import { handleClassify } from '../server/handler'
 
 /**
  * 배포용 서버리스 함수 (Vercel).
