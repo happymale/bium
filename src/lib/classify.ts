@@ -65,7 +65,9 @@ export async function classifyImage(
   }
 
   const c = body as Classification
-  return merge(c, image.dataUrl)
+  // 저장에는 썸네일만 씁니다 — 원본은 판별에만 쓰고 버립니다.
+  // (원본을 저장하면 localStorage 가 사진 12장에서 넘칩니다)
+  return merge(c, image.thumbDataUrl)
 }
 
 /** AI 판단 + 실제 요금표 → 저장 가능한 물건 초안 */

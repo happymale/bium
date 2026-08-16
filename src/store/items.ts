@@ -1,5 +1,6 @@
 import { create } from 'zustand'
-import { persist } from 'zustand/middleware'
+import { createJSONStorage, persist } from 'zustand/middleware'
+import { resilientLocalStorage } from './resilientStorage'
 import type { Item, ItemStatus } from '../types'
 import { daysIdle } from '../types'
 import type { RouteId } from '../data/routeKinds'
@@ -210,6 +211,8 @@ export const useItems = create<ItemsState>()(
       // v2: 리포트 집계를 위한 "처리 완료" 시드 6건 추가 + 소파 수수료를 실제 요금표 값으로 정정
       version: 2,
       migrate: () => ({ items: seed(Date.now()) }),
+      // 용량이 넘치면 사진부터 버리고 물건 정보는 지킵니다
+      storage: createJSONStorage(resilientLocalStorage),
     },
   ),
 )
