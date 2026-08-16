@@ -1,0 +1,201 @@
+.intro {
+  font-size: 13px;
+  color: var(--ink2);
+  line-height: 1.7;
+  margin: 4px 0 18px;
+}
+
+.preview {
+  position: relative;
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  background: var(--page);
+  aspect-ratio: 4 / 3;
+  display: grid;
+  place-items: center;
+  margin-bottom: 16px;
+}
+
+.preview img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.placeholder {
+  color: var(--muted);
+  font-size: 13px;
+  text-align: center;
+  line-height: 1.8;
+  padding: 0 24px;
+}
+
+.spinner {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  gap: 10px;
+  background: rgba(11, 11, 11, 0.55);
+  color: #fff;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.dot {
+  width: 34px;
+  height: 34px;
+  border: 3px solid rgba(255, 255, 255, 0.28);
+  border-top-color: #fff;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+.btn {
+  border: 0;
+  border-radius: var(--radius-md);
+  background: var(--brand);
+  color: #fff;
+  font-size: 15px;
+  font-weight: 800;
+  padding: 14px 0;
+}
+
+.btn:disabled {
+  background: var(--grid);
+  color: var(--muted);
+}
+
+.ghost {
+  background: none;
+  color: var(--ink2);
+  border: 1px solid var(--line);
+  font-weight: 700;
+}
+
+.wide {
+  grid-column: 1 / -1;
+}
+
+.hidden {
+  display: none;
+}
+
+/* ── 판별 결과 미리보기 ── */
+.card {
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+  padding: 14px 15px;
+  margin-bottom: 12px;
+}
+
+.kind {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  font-weight: 800;
+  color: #fff;
+  padding: 4px 10px;
+  border-radius: 999px;
+}
+
+.name {
+  font-size: 19px;
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  margin: 10px 0 3px;
+}
+
+.cost {
+  font-size: 14px;
+  font-weight: 800;
+  color: var(--good-text);
+}
+
+.costPaid {
+  color: var(--r-bulk);
+}
+
+.material {
+  font-size: 12.5px;
+  color: var(--muted);
+  margin-top: 8px;
+  line-height: 1.6;
+}
+
+.meter {
+  margin-top: 12px;
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  font-size: 11.5px;
+  color: var(--muted);
+  font-weight: 700;
+}
+
+.track {
+  flex: 1;
+  height: 6px;
+  border-radius: 999px;
+  background: var(--grid);
+  overflow: hidden;
+}
+
+.fill {
+  height: 100%;
+  border-radius: 999px;
+  background: var(--brand);
+}
+
+.fillLow {
+  background: var(--r-drop);
+}
+
+.alert {
+  display: flex;
+  gap: 9px;
+  padding: 12px 13px;
+  border-radius: var(--radius-md);
+  font-size: 12.5px;
+  line-height: 1.6;
+  margin-bottom: 12px;
+}
+
+.alertWarn {
+  background: var(--brand-soft);
+  color: var(--ink2);
+}
+
+.alertError {
+  border: 1px solid var(--r-drop);
+  color: var(--ink2);
+}
+
+.alert b {
+  color: var(--ink);
+}
+
+.badge {
+  display: inline-block;
+  font-size: 10.5px;
+  font-weight: 800;
+  padding: 3px 8px;
+  border-radius: 999px;
+  background: var(--page);
+  color: var(--muted);
+  margin-left: 6px;
+  vertical-align: middle;
+}

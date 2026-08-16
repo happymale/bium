@@ -1,0 +1,70 @@
+/*
+ * 비움 BIUM — 디자인 토큰
+ * bium_mockup_1.html 의 :root 변수를 그대로 이식하고, 앱에 필요한 값만 추가했습니다.
+ */
+
+:root {
+  color-scheme: light;
+
+  /* ── 표면 & 텍스트 ── */
+  --surface: #fcfcfb;
+  --page: #f4f5f2;
+  --ink: #0b0b0b;
+  --ink2: #52514e;
+  --muted: #898781;
+  --grid: #e1e0d9;
+  --line: rgba(11, 11, 11, 0.1);
+
+  /* ── 브랜드 ── */
+  --brand: #0f7a55;
+  --brand-soft: rgba(27, 175, 122, 0.12);
+  --good-text: #006300;
+
+  /* ── 4개 처리 경로 (validated categorical subset) ── */
+  --r-reuse: #1baf7a; /* 재사용·기부 */
+  --r-free: #2a78d6; /* 무상 방문수거 */
+  --r-bulk: #eb6834; /* 대형폐기물 */
+  --r-drop: #e34948; /* 전용 수거함 */
+  --r-burn: #898781; /* 종량제(소각) — 안티 경로 */
+
+  /* ── 앱 전용 추가 토큰 ── */
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 14px;
+  --radius-xl: 20px;
+
+  --shadow-card: 0 1px 2px rgba(11, 11, 11, 0.04);
+  --shadow-float: 0 6px 20px rgba(11, 11, 11, 0.16);
+
+  --tabbar-h: 58px;
+  --safe-b: env(safe-area-inset-bottom, 0px);
+  --safe-t: env(safe-area-inset-top, 0px);
+
+  --font: system-ui, -apple-system, 'Segoe UI', 'Apple SD Gothic Neo',
+    'Malgun Gothic', sans-serif;
+}
+
+:root[data-theme='dark'] {
+  color-scheme: dark;
+
+  --surface: #1a1a19;
+  --page: #0d0d0d;
+  --ink: #ffffff;
+  --ink2: #c3c2b7;
+  --muted: #898781;
+  --grid: #2c2c2a;
+  --line: rgba(255, 255, 255, 0.12);
+
+  --brand: #1baf7a;
+  --brand-soft: rgba(27, 175, 122, 0.18);
+  --good-text: #0ca30c;
+
+  --r-reuse: #199e70;
+  --r-free: #3987e5;
+  --r-bulk: #d95926;
+  --r-drop: #e66767;
+  /* --r-burn 은 라이트/다크 동일 */
+
+  --shadow-card: 0 1px 2px rgba(0, 0, 0, 0.35);
+  --shadow-float: 0 6px 20px rgba(0, 0, 0, 0.5);
+}

@@ -1,0 +1,57 @@
+.navbar {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: calc(var(--safe-t) + 12px) 18px 12px;
+  background: color-mix(in srgb, var(--surface) 92%, transparent);
+  backdrop-filter: blur(12px);
+  border-bottom: 1px solid var(--grid);
+}
+
+.back {
+  border: 0;
+  background: none;
+  color: var(--muted);
+  font-size: 21px;
+  line-height: 1;
+  padding: 0 2px;
+  margin-left: -4px;
+}
+
+.title {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 800;
+  letter-spacing: -0.025em;
+}
+
+.spacer {
+  flex: 1;
+}
+
+.body {
+  flex: 1;
+  padding: 16px 18px 24px;
+}
+
+/* 아직 구현되지 않은 화면용 자리표시자 */
+.stub {
+  margin: 40px 0;
+  padding: 28px 20px;
+  border: 1px dashed var(--line);
+  border-radius: var(--radius-lg);
+  text-align: center;
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.7;
+}
+
+.stub b {
+  display: block;
+  color: var(--ink2);
+  font-size: 14.5px;
+  margin-bottom: 5px;
+}

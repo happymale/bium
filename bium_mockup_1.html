@@ -1,0 +1,521 @@
+<!DOCTYPE html>
+<html lang="ko" data-theme="light">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>비움 BIUM — 화면 목업</title>
+<style>
+  :root {
+    color-scheme: light;
+    --surface: #fcfcfb;
+    --page: #f4f5f2;
+    --ink: #0b0b0b;
+    --ink2: #52514e;
+    --muted: #898781;
+    --grid: #e1e0d9;
+    --line: rgba(11,11,11,0.10);
+    --brand: #0f7a55;
+    --brand-soft: rgba(27,175,122,0.12);
+    --good-text: #006300;
+    /* 4개 처리 경로 (validated categorical subset) */
+    --r-reuse: #1baf7a;   /* 재사용·기부 */
+    --r-free:  #2a78d6;   /* 무상 방문수거 */
+    --r-bulk:  #eb6834;   /* 대형폐기물 */
+    --r-drop:  #e34948;   /* 전용 수거함 */
+    --r-burn:  #898781;   /* 종량제(소각) */
+  }
+  :root[data-theme="dark"] {
+    color-scheme: dark;
+    --surface: #1a1a19; --page: #0d0d0d; --ink: #ffffff; --ink2: #c3c2b7;
+    --muted: #898781; --grid: #2c2c2a; --line: rgba(255,255,255,0.12);
+    --brand: #1baf7a; --brand-soft: rgba(27,175,122,0.18); --good-text: #0ca30c;
+    --r-reuse: #199e70; --r-free: #3987e5; --r-bulk: #d95926; --r-drop: #e66767;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; background: var(--page); color: var(--ink);
+    font-family: system-ui, -apple-system, "Segoe UI", "Apple SD Gothic Neo", "Malgun Gothic", sans-serif;
+    font-size: 15px; line-height: 1.55; -webkit-font-smoothing: antialiased;
+  }
+  .wrap { max-width: 1180px; margin: 0 auto; padding: 18px 24px 48px; }
+
+  .topbar { display: flex; align-items: center; gap: 13px; padding: 8px 0 16px; }
+  .logo { display: flex; align-items: center; gap: 9px; font-weight: 800; font-size: 19px; letter-spacing: -0.03em; }
+  .logo .mark {
+    width: 25px; height: 25px; border-radius: 8px; background: var(--brand);
+    display: grid; place-items: center; color: #fff; font-size: 14px; font-weight: 800;
+  }
+  .logo small { font-weight: 600; font-size: 12px; color: var(--muted); letter-spacing: .08em; margin-left: 2px; }
+  .who { padding: 4px 10px; border-radius: 999px; background: var(--brand-soft); color: var(--brand); font-size: 12.5px; font-weight: 700; }
+  .spacer { flex: 1; }
+  .tgl { border: 1px solid var(--line); background: var(--surface); color: var(--ink2);
+    border-radius: 8px; padding: 6px 12px; font-size: 13px; cursor: pointer; font-family: inherit; }
+
+  .tabs { display: flex; gap: 4px; border-bottom: 1px solid var(--line); margin-bottom: 20px; flex-wrap: wrap; }
+  .tab { border: 0; background: none; font-family: inherit; font-size: 14px; color: var(--muted);
+    padding: 10px 13px; cursor: pointer; border-bottom: 2px solid transparent; margin-bottom: -1px; font-weight: 700; }
+  .tab[aria-selected="true"] { color: var(--ink); border-bottom-color: var(--brand); }
+  .tab .n { display: inline-block; width: 17px; height: 17px; line-height: 17px; border-radius: 50%;
+    background: var(--brand-soft); color: var(--brand); font-size: 11px; text-align: center; margin-right: 6px; font-weight: 800; }
+  .screen { display: none; }
+  .screen.on { display: grid; grid-template-columns: 392px 1fr; gap: 34px; align-items: start; }
+
+  /* ── phone ── */
+  .phone {
+    width: 392px; border: 9px solid #16211c; border-radius: 40px; background: var(--surface);
+    overflow: hidden; box-shadow: 0 8px 28px rgba(11,11,11,0.13);
+  }
+  :root[data-theme="dark"] .phone { border-color: #33403a; }
+  .status {
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 10px 20px 4px; font-size: 11.5px; color: var(--muted); font-weight: 600;
+  }
+  .navbar {
+    display: flex; align-items: center; gap: 10px; padding: 6px 18px 12px;
+    border-bottom: 1px solid var(--grid);
+  }
+  .navbar .back { color: var(--muted); font-size: 17px; }
+  .navbar h3 { margin: 0; font-size: 15.5px; letter-spacing: -0.02em; }
+  .pbody { padding: 16px 18px 20px; }
+
+  /* photo block */
+  .photo {
+    position: relative; height: 186px; border-radius: 14px; overflow: hidden;
+    background: linear-gradient(160deg, #e7e9e5, #d6dad4);
+  }
+  :root[data-theme="dark"] .photo { background: linear-gradient(160deg, #2a2f2c, #1f2422); }
+  .photo svg { position: absolute; inset: 0; margin: auto; }
+  .bbox {
+    position: absolute; left: 30%; top: 13%; width: 40%; height: 74%;
+    border: 2px solid var(--r-free); border-radius: 6px;
+  }
+  .bbox span {
+    position: absolute; top: -11px; left: -2px; background: var(--r-free); color: #fff;
+    font-size: 10.5px; font-weight: 700; padding: 2px 7px; border-radius: 5px; white-space: nowrap;
+  }
+  .conf {
+    position: absolute; right: 10px; bottom: 10px; background: rgba(11,11,11,0.72); color: #fff;
+    font-size: 11px; font-weight: 700; padding: 4px 9px; border-radius: 999px;
+  }
+
+  .verdict { margin-top: 15px; }
+  .verdict .kind {
+    display: inline-flex; align-items: center; gap: 7px; font-size: 12.5px; font-weight: 800;
+    color: #fff; background: var(--r-free); padding: 5px 11px; border-radius: 999px;
+  }
+  .verdict h2 { margin: 11px 0 5px; font-size: 23px; letter-spacing: -0.035em; line-height: 1.25; }
+  .verdict .cost { font-size: 15px; font-weight: 800; color: var(--good-text); }
+  .basis {
+    margin-top: 13px; padding: 12px 13px; border-radius: 11px; background: var(--page);
+    font-size: 12.5px; color: var(--ink2); line-height: 1.6;
+  }
+  .basis b { color: var(--ink); }
+  .basis .stamp { display: block; margin-top: 7px; color: var(--muted); font-size: 11.5px; }
+  .warn {
+    margin-top: 10px; display: flex; gap: 9px; padding: 11px 13px; border-radius: 11px;
+    border: 1px solid var(--line); font-size: 12.5px; line-height: 1.55;
+  }
+  .warn .x {
+    flex: 0 0 auto; width: 19px; height: 19px; border-radius: 50%; background: var(--r-drop);
+    color: #fff; font-size: 11px; font-weight: 800; display: grid; place-items: center; margin-top: 1px;
+  }
+  .cta {
+    margin-top: 15px; width: 100%; border: 0; border-radius: 12px; background: var(--brand);
+    color: #fff; font-family: inherit; font-size: 15px; font-weight: 800; padding: 14px 0; cursor: pointer;
+  }
+  .cta.ghost { background: none; color: var(--ink2); border: 1px solid var(--line); font-weight: 700; margin-top: 8px; }
+  .alt { margin-top: 12px; font-size: 12px; color: var(--muted); text-align: center; }
+
+  /* list */
+  .nudge {
+    padding: 13px 14px; border-radius: 13px; background: var(--brand-soft); margin-bottom: 15px;
+  }
+  .nudge b { font-size: 14.5px; }
+  .nudge p { margin: 4px 0 0; font-size: 12.5px; color: var(--ink2); }
+  .chips { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 12px; }
+  .chip {
+    font-size: 11.5px; font-weight: 700; padding: 5px 10px; border-radius: 999px;
+    border: 1px solid var(--line); color: var(--ink2); display: flex; align-items: center; gap: 6px;
+  }
+  .chip i { width: 8px; height: 8px; border-radius: 2px; display: block; }
+  .chip.on { background: var(--ink); color: var(--surface); border-color: var(--ink); }
+  .item { display: flex; gap: 12px; padding: 12px 0; border-bottom: 1px solid var(--grid); align-items: center; }
+  .item:last-child { border-bottom: 0; }
+  .thumb {
+    flex: 0 0 auto; width: 42px; height: 42px; border-radius: 10px; background: var(--page);
+    display: grid; place-items: center;
+  }
+  .thumb i { width: 8px; height: 8px; border-radius: 2px; display: block; }
+  .item .nm { font-size: 14px; font-weight: 700; letter-spacing: -0.01em; }
+  .item .sub { font-size: 12px; color: var(--muted); }
+  .item .days { margin-left: auto; text-align: right; white-space: nowrap; }
+  .item .days b { font-size: 13.5px; font-variant-numeric: tabular-nums; }
+  .item .days span { display: block; font-size: 11px; color: var(--muted); }
+  .days.old b { color: var(--r-bulk); }
+
+  /* agent steps */
+  .target {
+    display: flex; gap: 12px; align-items: center; padding: 13px 14px; border-radius: 13px;
+    background: var(--page); margin-bottom: 15px;
+  }
+  .target .nm { font-size: 15px; font-weight: 800; }
+  .target .sub { font-size: 12px; color: var(--muted); }
+  .steps { list-style: none; margin: 0 0 4px; padding: 0; }
+  .steps li { display: flex; gap: 11px; padding: 10px 0; align-items: flex-start; }
+  .steps .st {
+    flex: 0 0 auto; width: 19px; height: 19px; border-radius: 50%; display: grid; place-items: center;
+    font-size: 10.5px; color: #fff; font-weight: 800; margin-top: 2px;
+  }
+  .st.done { background: var(--r-reuse); }
+  .st.now { background: var(--brand); }
+  .st.wait { background: var(--grid); color: var(--muted); }
+  .steps .tx { flex: 1; font-size: 13.5px; font-weight: 600; }
+  .steps .tx em { display: block; font-style: normal; font-weight: 400; font-size: 12px; color: var(--muted); }
+  .bill { margin-top: 6px; padding: 13px 14px; border-radius: 13px; border: 1px solid var(--line); }
+  .bill .row { display: flex; justify-content: space-between; font-size: 13px; padding: 3px 0; color: var(--ink2); }
+  .bill .row.total { border-top: 1px solid var(--grid); margin-top: 7px; padding-top: 9px; font-weight: 800; color: var(--ink); font-size: 14.5px; }
+  .bill .note { font-size: 11.5px; color: var(--muted); margin-top: 8px; }
+
+  /* report */
+  .hero { text-align: center; padding: 6px 0 2px; }
+  .hero .big { font-size: 54px; font-weight: 800; letter-spacing: -0.045em; line-height: 1.05; color: var(--r-reuse); }
+  .hero .cap { font-size: 13px; color: var(--ink2); margin-top: 2px; }
+  .hero .sub { font-size: 11.5px; color: var(--muted); margin-top: 4px; }
+  .segbar { display: flex; gap: 2px; height: 34px; margin: 17px 0 10px; }
+  .seg { position: relative; border-radius: 2px; display: grid; place-items: center;
+    color: #fff; font-size: 12px; font-weight: 800; }
+  .seg:first-child { border-radius: 4px 2px 2px 4px; }
+  .seg:last-child { border-radius: 2px 4px 4px 2px; }
+  .legend { display: flex; flex-wrap: wrap; gap: 5px 15px; font-size: 11.5px; color: var(--ink2); }
+  .legend span { display: flex; align-items: center; gap: 6px; }
+  .legend i { width: 10px; height: 10px; border-radius: 3px; display: inline-block; }
+  .counter {
+    margin-top: 15px; padding: 13px 14px; border-radius: 13px; background: var(--page); font-size: 13px; line-height: 1.6;
+  }
+  .counter b { color: var(--r-burn); }
+  .trace { margin-top: 15px; }
+  .trace h4 { margin: 0 0 8px; font-size: 13px; color: var(--muted); font-weight: 700; }
+  .trace .t { display: flex; gap: 10px; padding: 9px 0; border-bottom: 1px solid var(--grid); font-size: 12.5px; align-items: center; }
+  .trace .t:last-child { border-bottom: 0; }
+  .trace .t i { width: 8px; height: 8px; border-radius: 2px; flex: 0 0 auto; }
+  .trace .t b { font-weight: 700; }
+  .trace .t span { color: var(--muted); margin-left: auto; white-space: nowrap; font-size: 11.5px; }
+
+  /* ── annotation column ── */
+  .note h1 { font-size: 27px; letter-spacing: -0.035em; margin: 2px 0 6px; }
+  .note .lead { font-size: 14.5px; color: var(--ink2); margin: 0 0 22px; line-height: 1.65; }
+  .pt { display: flex; gap: 13px; padding: 15px 0; border-bottom: 1px solid var(--grid); }
+  .pt:last-of-type { border-bottom: 0; }
+  .pt .b {
+    flex: 0 0 auto; width: 25px; height: 25px; border-radius: 50%; background: var(--brand);
+    color: #fff; font-size: 12px; font-weight: 800; display: grid; place-items: center; margin-top: 1px;
+  }
+  .pt h4 { margin: 0 0 4px; font-size: 15px; letter-spacing: -0.015em; }
+  .pt p { margin: 0; font-size: 13px; color: var(--ink2); line-height: 1.6; }
+  .callout {
+    margin-top: 18px; padding: 16px 17px; border-radius: 14px; background: var(--brand-soft);
+    font-size: 13.5px; line-height: 1.65;
+  }
+  .callout b { color: var(--brand); }
+  .routes { display: grid; grid-template-columns: 1fr 1fr; gap: 9px; margin-top: 18px; }
+  .route { border: 1px solid var(--line); border-radius: 12px; padding: 11px 13px; }
+  .route .h { display: flex; align-items: center; gap: 7px; font-size: 13px; font-weight: 800; }
+  .route .h i { width: 10px; height: 10px; border-radius: 3px; }
+  .route p { margin: 5px 0 0; font-size: 11.5px; color: var(--muted); line-height: 1.5; }
+
+  .foot { color: var(--muted); font-size: 12px; margin-top: 30px; text-align: center; }
+  @media (max-width: 980px) { .screen.on { grid-template-columns: 1fr; } .phone { margin: 0 auto; } }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <div class="topbar">
+    <div class="logo"><span class="mark">비</span>비움<small>BIUM</small></div>
+    <span class="who">수현 · 서대문구 신촌동</span>
+    <span class="spacer"></span>
+    <button class="tgl" id="themeBtn">◐ 다크모드</button>
+  </div>
+
+  <div class="tabs" role="tablist">
+    <button class="tab" role="tab" aria-selected="true" data-t="s1"><span class="n">1</span>사진 한 장 판별</button>
+    <button class="tab" role="tab" aria-selected="false" data-t="s2"><span class="n">2</span>우리 집 비움 목록</button>
+    <button class="tab" role="tab" aria-selected="false" data-t="s3"><span class="n">3</span>신청 대행 에이전트</button>
+    <button class="tab" role="tab" aria-selected="false" data-t="s4"><span class="n">4</span>비움 리포트</button>
+  </div>
+
+  <!-- ═══════ 1 ═══════ -->
+  <section class="screen on" id="s1">
+    <div class="phone">
+      <div class="status"><span>9:41</span><span>●●● ⏻</span></div>
+      <div class="navbar"><span class="back">‹</span><h3>판별 결과</h3></div>
+      <div class="pbody">
+        <div class="photo">
+          <svg width="96" height="128" viewBox="0 0 96 128" fill="none" stroke="#8d938f" stroke-width="2.5">
+            <rect x="20" y="30" width="56" height="82" rx="10"/>
+            <rect x="32" y="14" width="32" height="18" rx="6"/>
+            <path d="M44 6c0 4 8 4 8 8" stroke-linecap="round"/>
+            <line x1="32" y1="54" x2="64" y2="54"/>
+            <circle cx="48" cy="80" r="12"/>
+          </svg>
+          <div class="bbox"><span>가습기 · 소형가전</span></div>
+          <div class="conf">확신도 94%</div>
+        </div>
+
+        <div class="verdict">
+          <span class="kind">🔵 무상 방문수거</span>
+          <h2>이건 무료로<br>가져가 줍니다</h2>
+          <div class="cost">0원 · 문 앞 배출</div>
+        </div>
+
+        <div class="basis">
+          모터와 전기부품이 있는 <b>소형 폐가전</b>입니다. 서대문구는 폐가전제품 무상방문수거(1599-0903) 대상이라 <b>대형폐기물 스티커를 살 필요가 없습니다.</b>
+          <span class="stamp">근거: 서대문구 대형폐기물 안내 · 규정 확인일 2026.08.10</span>
+        </div>
+
+        <div class="warn">
+          <span class="x">✕</span>
+          <div><b>종량제봉투에 넣으면 안 됩니다.</b> 소각 시 유해물질이 나오고, 안에 든 구리·플라스틱도 회수되지 않습니다.</div>
+        </div>
+
+        <button class="cta">무상수거 예약하기</button>
+        <button class="cta ghost">확실하지 않아요 · 구청에 물어보기</button>
+        <p class="alt">대형폐기물로 신고했다면 <b>3,000원</b>을 냈을 물건입니다</p>
+      </div>
+    </div>
+
+    <div class="note">
+      <h1>① 사진 한 장 판별</h1>
+      <p class="lead">사람들은 쓰레기를 못 들고 나가는 게 아닙니다. <b>어떻게 버리는지 몰라서</b> 못 버립니다. 비움은 그 판단을 30초로 줄입니다.</p>
+
+      <div class="pt"><span class="b">1</span><div>
+        <h4>품목이 아니라 재질과 부착물을 봅니다</h4>
+        <p>“가습기”가 아니라 “모터·전기부품이 있는 소형 폐가전”으로 읽습니다. 배출 규정은 이름이 아니라 구성으로 갈립니다.</p></div></div>
+
+      <div class="pt"><span class="b">2</span><div>
+        <h4>우리 동네 기준으로 번역합니다</h4>
+        <p>같은 소파도 지자체마다 수수료와 신고 경로가 다릅니다. 검색 결과가 우리 구 기준인지 알 수 없다는 것이 가장 큰 불편이었습니다.</p></div></div>
+
+      <div class="pt"><span class="b">3</span><div>
+        <h4>확신이 없으면 없다고 말합니다</h4>
+        <p>확신도를 함께 보여주고, 낮으면 구청 문의로 연결합니다. 잘못 버려 과태료가 나오면 서비스가 보전합니다.</p></div></div>
+
+      <div class="callout">
+        <b>종량제봉투는 네 경로 어디에도 없습니다.</b> 비움의 목표는 “대신 버려주기”가 아니라 <b>종량제로 가는 물건을 줄이는 것</b>입니다.
+      </div>
+
+      <div class="routes">
+        <div class="route"><div class="h"><i style="background:var(--r-reuse)"></i>재사용·기부</div><p>아직 쓸 만한 가구·의류·장난감 · 0원 픽업</p></div>
+        <div class="route"><div class="h"><i style="background:var(--r-free)"></i>무상 방문수거</div><p>폐가전 전 품목 · 0원</p></div>
+        <div class="route"><div class="h"><i style="background:var(--r-bulk)"></i>대형폐기물 신고</div><p>가구·매트리스 · 지자체별 수수료</p></div>
+        <div class="route"><div class="h"><i style="background:var(--r-drop)"></i>전용 수거함</div><p>폐의약품·건전지·형광등 · 위치 안내</p></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ═══════ 2 ═══════ -->
+  <section class="screen" id="s2">
+    <div class="phone">
+      <div class="status"><span>9:41</span><span>●●● ⏻</span></div>
+      <div class="navbar"><h3>우리 집 비움 목록</h3></div>
+      <div class="pbody">
+        <div class="nudge">
+          <b>오늘 하나만 비워볼까요?</b>
+          <p>가장 오래 기다린 건 <b>폐건전지 12개</b>입니다. 근처 주민센터 수거함까지 걸어서 4분.</p>
+        </div>
+        <div class="chips">
+          <span class="chip on">전체 7</span>
+          <span class="chip"><i style="background:var(--r-reuse)"></i>재사용 3</span>
+          <span class="chip"><i style="background:var(--r-free)"></i>무상 2</span>
+          <span class="chip"><i style="background:var(--r-bulk)"></i>대형 1</span>
+          <span class="chip"><i style="background:var(--r-drop)"></i>수거함 1</span>
+        </div>
+
+        <div class="item"><span class="thumb"><i style="background:var(--r-drop)"></i></span>
+          <div><div class="nm">폐건전지 12개</div><div class="sub">전용 수거함 · 0원</div></div>
+          <div class="days old"><b>211일</b><span>방치</span></div></div>
+
+        <div class="item"><span class="thumb"><i style="background:var(--r-free)"></i></span>
+          <div><div class="nm">노트북 (2016년형)</div><div class="sub">무상 방문수거 · 0원</div></div>
+          <div class="days old"><b>154일</b><span>방치</span></div></div>
+
+        <div class="item"><span class="thumb"><i style="background:var(--r-free)"></i></span>
+          <div><div class="nm">가습기</div><div class="sub">무상 방문수거 · 0원</div></div>
+          <div class="days old"><b>128일</b><span>방치</span></div></div>
+
+        <div class="item"><span class="thumb"><i style="background:var(--r-reuse)"></i></span>
+          <div><div class="nm">유아용 카시트</div><div class="sub">재사용·기부 · 픽업 가능</div></div>
+          <div class="days"><b>89일</b><span>방치</span></div></div>
+
+        <div class="item"><span class="thumb"><i style="background:var(--r-reuse)"></i></span>
+          <div><div class="nm">헌 이불 2채</div><div class="sub">재사용·기부 · 픽업 가능</div></div>
+          <div class="days"><b>46일</b><span>방치</span></div></div>
+
+        <div class="item"><span class="thumb"><i style="background:var(--r-bulk)"></i></span>
+          <div><div class="nm">3인용 소파</div><div class="sub">대형폐기물 · 7,000원</div></div>
+          <div class="days"><b>23일</b><span>방치</span></div></div>
+
+        <div class="item"><span class="thumb"><i style="background:var(--r-reuse)"></i></span>
+          <div><div class="nm">읽은 책 24권</div><div class="sub">재사용·기부 · 픽업 가능</div></div>
+          <div class="days"><b>11일</b><span>방치</span></div></div>
+      </div>
+    </div>
+
+    <div class="note">
+      <h1>② 우리 집 비움 목록</h1>
+      <p class="lead">한 번 찍어둔 물건은 사라지지 않고 목록이 됩니다. 이 화면이 이 서비스의 <b>경험디자인</b>이 작동하는 자리입니다.</p>
+
+      <div class="pt"><span class="b">1</span><div>
+        <h4>죄책감을 진행 상황으로 바꿉니다</h4>
+        <p>“아직도 안 버렸네”라고 혼내지 않습니다. 방치 일수는 비난이 아니라 눈금이고, 문장은 언제나 “오늘 하나만 비워볼까요?”입니다.</p></div></div>
+
+      <div class="pt"><span class="b">2</span><div>
+        <h4>가장 쉬운 것을 먼저 권합니다</h4>
+        <p>제일 오래 기다린 물건이 아니라 <b>지금 당장 처리할 수 있는 물건</b>을 맨 위에 올립니다. 걸어서 4분이면 오늘 하나가 사라집니다.</p></div></div>
+
+      <div class="pt"><span class="b">3</span><div>
+        <h4>재사용 경로를 항상 위에 둡니다</h4>
+        <p>서비스가 편해질수록 사람은 더 버립니다. 그래서 기본값을 ‘버리기’가 아니라 <b>‘다시 쓰이게 하기’</b>로 두었습니다.</p></div></div>
+
+      <div class="callout">
+        페르소나 수현 씨의 베란다에는 고장난 가습기가 <b>4개월째</b> 있습니다. 이 목록은 그 4개월을 <b>“211일 · 154일 · 128일”</b>이라는 눈에 보이는 숫자로 바꿉니다.
+      </div>
+    </div>
+  </section>
+
+  <!-- ═══════ 3 ═══════ -->
+  <section class="screen" id="s3">
+    <div class="phone">
+      <div class="status"><span>9:41</span><span>●●● ⏻</span></div>
+      <div class="navbar"><span class="back">‹</span><h3>신청 대행</h3></div>
+      <div class="pbody">
+        <div class="target">
+          <span class="thumb"><i style="background:var(--r-bulk)"></i></span>
+          <div><div class="nm">3인용 소파</div><div class="sub">서대문구 대형폐기물 인터넷 신고</div></div>
+        </div>
+
+        <ul class="steps">
+          <li><span class="st done">✓</span><div class="tx">품목 매칭<em>서대문구 요금표에서 ‘소파(3인용)’ 확인 · 수수료 7,000원</em></div></li>
+          <li><span class="st done">✓</span><div class="tx">신고서 자동 작성<em>주소·배출 장소·배출 예정일 8/15(금) 입력 완료</em></div></li>
+          <li><span class="st now">▶</span><div class="tx">사용자 승인 대기<em>결제 전 금액과 항목을 확인하세요</em></div></li>
+          <li><span class="st wait">4</span><div class="tx">수수료 결제 및 신고 제출<em>승인 후 즉시</em></div></li>
+          <li><span class="st wait">5</span><div class="tx">배출 스티커 번호 수령<em>약 1분 · 종이 스티커 구매 불필요</em></div></li>
+          <li><span class="st wait">6</span><div class="tx">배출일 알림<em>8/15(금) 저녁 8시 · 배출 위치 사진 안내</em></div></li>
+        </ul>
+
+        <div class="bill">
+          <div class="row"><span>서대문구 대형폐기물 수수료</span><span>7,000원</span></div>
+          <div class="row"><span>비움 대행 수수료</span><span>1,900원</span></div>
+          <div class="row total"><span>합계</span><span>8,900원</span></div>
+          <p class="note">승인 없이는 어떤 결제도 일어나지 않습니다. 신고 취소 시 수수료는 전액 환불됩니다.</p>
+        </div>
+
+        <button class="cta">승인하고 신청하기</button>
+      </div>
+    </div>
+
+    <div class="note">
+      <h1>③ 신청 대행 에이전트</h1>
+      <p class="lead">여기가 <b>Agentic AI가 없으면 성립하지 않는</b> 지점입니다. 설명해주는 챗봇에서, 신청까지 끝내주는 에이전트로 넘어갑니다.</p>
+
+      <div class="pt"><span class="b">1</span><div>
+        <h4>지자체마다 다른 신고 폼을 대신 채웁니다</h4>
+        <p>서울 25개 자치구가 각자 다른 요금표와 신고 시스템을 씁니다. 사람은 매번 새로 배워야 하지만, 에이전트는 한 번 배우면 됩니다.</p></div></div>
+
+      <div class="pt"><span class="b">2</span><div>
+        <h4>결제는 반드시 사람이 승인합니다</h4>
+        <p>금액과 항목을 먼저 보여주고, 승인 버튼을 누르기 전에는 아무 일도 일어나지 않습니다. 대리 결제 사고를 구조적으로 막습니다.</p></div></div>
+
+      <div class="pt"><span class="b">3</span><div>
+        <h4>사람이 쓰는 시간은 40초입니다</h4>
+        <p>사진 한 장(10초) → 결과 확인(20초) → 승인(10초). 검색하고 요금표를 찾고 신고서를 쓰던 30분이 사라집니다.</p></div></div>
+
+      <div class="callout">
+        오늘수거·커버링과는 <b>경쟁이 아니라 보완</b>입니다. 비움이 “이건 수거 대행이 답입니다”라고 판단하면 그 서비스로 연결합니다. <b>판단 레이어가 위에 있고, 수거는 네 경로 중 하나의 실행 수단입니다.</b>
+      </div>
+    </div>
+  </section>
+
+  <!-- ═══════ 4 ═══════ -->
+  <section class="screen" id="s4">
+    <div class="phone">
+      <div class="status"><span>9:41</span><span>●●● ⏻</span></div>
+      <div class="navbar"><h3>8월 비움 리포트</h3></div>
+      <div class="pbody">
+        <div class="hero">
+          <div class="big">83%</div>
+          <div class="cap">다시 쓰이게 된 비율</div>
+          <div class="sub">이번 달 비운 6개 중 5개가 재사용·재활용으로 갔습니다</div>
+        </div>
+
+        <div class="segbar">
+          <div class="seg" style="flex:3;background:var(--r-reuse)">3</div>
+          <div class="seg" style="flex:2;background:var(--r-free)">2</div>
+          <div class="seg" style="flex:1;background:var(--r-bulk)">1</div>
+        </div>
+        <div class="legend">
+          <span><i style="background:var(--r-reuse)"></i>재사용·기부 3</span>
+          <span><i style="background:var(--r-free)"></i>무상 방문수거 2</span>
+          <span><i style="background:var(--r-bulk)"></i>대형폐기물 1</span>
+        </div>
+
+        <div class="counter">
+          몰라서 종량제봉투에 넣었다면 <b>이 중 5개가 그대로 소각</b>됐을 것입니다.<br>
+          무상수거로 대체해 <b>아낀 수수료 12,000원</b>.
+        </div>
+
+        <div class="trace">
+          <h4>어디로 갔는지</h4>
+          <div class="t"><i style="background:var(--r-reuse)"></i><b>헌 이불 2채</b> → 아름다운가게 신촌점<span>판매 완료</span></div>
+          <div class="t"><i style="background:var(--r-reuse)"></i><b>읽은 책 24권</b> → 지역 작은도서관<span>기증 완료</span></div>
+          <div class="t"><i style="background:var(--r-free)"></i><b>노트북</b> → 폐가전 재활용센터<span>부품 회수</span></div>
+          <div class="t"><i style="background:var(--r-free)"></i><b>가습기</b> → 폐가전 재활용센터<span>수거 완료</span></div>
+          <div class="t"><i style="background:var(--r-bulk)"></i><b>3인용 소파</b> → 서대문구 처리장<span>8/15 배출</span></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="note">
+      <h1>④ 비움 리포트</h1>
+      <p class="lead">어디로 갔는지 모르면 다음에도 대충 버립니다. <b>보이지 않는 결과는 행동을 바꾸지 못합니다.</b></p>
+
+      <div class="pt"><span class="b">1</span><div>
+        <h4>대표 지표를 ‘버린 개수’로 두지 않았습니다</h4>
+        <p>많이 버린 사람이 칭찬받는 구조는 위험합니다. 그래서 화면 맨 위 숫자는 <b>다시 쓰이게 된 비율</b>입니다.</p></div></div>
+
+      <div class="pt"><span class="b">2</span><div>
+        <h4>“종량제로 갔다면”을 함께 보여줍니다</h4>
+        <p>분리배출을 해도 매년 40만 톤이 재활용 불가 판정을 받습니다. 개인의 편의가 그대로 잔재물 감소로 이어진다는 것을 숫자로 보여줍니다.</p></div></div>
+
+      <div class="pt"><span class="b">3</span><div>
+        <h4>행선지를 끝까지 추적합니다</h4>
+        <p>“아름다운가게 신촌점에서 판매 완료”까지 알려줍니다. 내가 보낸 물건이 누군가에게 갔다는 사실이 다음 물건을 꺼내게 만듭니다.</p></div></div>
+
+      <div class="callout">
+        이것이 이 서비스가 <b>다시 열리는</b> 이유입니다. 쓰레기 앱은 보통 한 번 쓰고 지워집니다. 비움은 “내가 보낸 것이 어떻게 됐는지” 확인하러 다시 들어오게 만듭니다.
+      </div>
+    </div>
+  </section>
+
+  <p class="foot">비움 BIUM · 버리는 법을 몰라서, 아직 집에 있습니다 — 「신인류 AI 사피엔스 경험디자인」 기말 팀프로젝트 화면 목업 (더미 데이터)</p>
+</div>
+
+<script>
+  document.querySelectorAll('.tab').forEach(function (btn) {
+    btn.addEventListener('click', function () {
+      document.querySelectorAll('.tab').forEach(function (b) { b.setAttribute('aria-selected', 'false'); });
+      btn.setAttribute('aria-selected', 'true');
+      document.querySelectorAll('.screen').forEach(function (s) { s.classList.remove('on'); });
+      document.getElementById(btn.dataset.t).classList.add('on');
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    });
+  });
+  var tb = document.getElementById('themeBtn');
+  tb.addEventListener('click', function () {
+    var dark = document.documentElement.dataset.theme === 'dark';
+    document.documentElement.dataset.theme = dark ? 'light' : 'dark';
+    tb.textContent = dark ? '◐ 다크모드' : '◑ 라이트모드';
+  });
+</script>
+</body>
+</html>
