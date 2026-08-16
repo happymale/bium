@@ -15,9 +15,13 @@ export function SettingsScreen() {
   const theme = useTheme((st) => st.theme)
   const toggle = useTheme((st) => st.toggle)
   const items = useItems((st) => st.items)
-  const resetToSeed = useItems((st) => st.resetToSeed)
+  const loadDemoData = useItems((st) => st.loadDemoData)
+  const clearDemoData = useItems((st) => st.clearDemoData)
+  const clearAll = useItems((st) => st.clearAll)
   const demoMode = useSettings((st) => st.demoMode)
   const setDemoMode = useSettings((st) => st.setDemoMode)
+  const demoData = useSettings((st) => st.demoData)
+  const setDemoData = useSettings((st) => st.setDemoData)
 
   const { nickname, dong, regionId } = useProfile()
   const setProfile = useProfile((st) => st.setProfile)
@@ -213,14 +217,47 @@ export function SettingsScreen() {
         </div>
         <div className={s.row}>
           <div>
-            <div className={s.rowLabel}>비움 목록 초기화</div>
+            <div className={s.rowLabel}>시연용 예시 데이터</div>
             <div className={s.rowSub}>
-              저장된 물건 <span className="tnum">{items.length}</span>개를 지우고
-              시연용 기본값으로 되돌립니다
+              발표·시연을 위해 예시 물건 13개(처리 완료 6건 포함)를 넣습니다.
+              끄면 예시만 사라지고 직접 등록한 물건은 남습니다.
             </div>
           </div>
-          <button type="button" className={s.reset} onClick={resetToSeed}>
-            초기화
+          <button
+            type="button"
+            role="switch"
+            aria-checked={demoData}
+            aria-label="시연용 예시 데이터"
+            className={s.switch}
+            onClick={() => {
+              const next = !demoData
+              setDemoData(next)
+              if (next) loadDemoData()
+              else clearDemoData()
+            }}
+          >
+            <span className={s.knob} />
+          </button>
+        </div>
+        <div className={s.row}>
+          <div>
+            <div className={s.rowLabel}>목록 전체 비우기</div>
+            <div className={s.rowSub}>
+              저장된 물건 <span className="tnum">{items.length}</span>개를 모두
+              지웁니다. 되돌릴 수 없습니다.
+            </div>
+          </div>
+          <button
+            type="button"
+            className={s.reset}
+            onClick={() => {
+              if (confirm('물건을 모두 지울까요? 되돌릴 수 없습니다.')) {
+                clearAll()
+                setDemoData(false)
+              }
+            }}
+          >
+            비우기
           </button>
         </div>
       </div>

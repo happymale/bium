@@ -8,6 +8,7 @@ import { ResultScreen } from './screens/ResultScreen'
 import { RequestScreen } from './screens/RequestScreen'
 import { ReportScreen } from './screens/ReportScreen'
 import { CaptureScreen } from './screens/CaptureScreen'
+import { AddItemScreen } from './screens/AddItemScreen'
 import { NotFoundScreen } from './screens/PlaceholderScreens'
 import { ConsentBanner } from './components/ConsentBanner'
 import { initAnalytics, pageview } from './lib/analytics'
@@ -67,6 +68,7 @@ export default function App() {
           <Route path="/" element={<HomeScreen />} />
           <Route path="/list" element={<ListScreen />} />
           <Route path="/capture" element={<CaptureScreen />} />
+          <Route path="/add" element={<AddItemScreen />} />
           <Route path="/result/:id" element={<ResultScreen />} />
           <Route path="/request/:id" element={<RequestScreen />} />
           <Route path="/report" element={<ReportScreen />} />

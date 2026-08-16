@@ -129,6 +129,41 @@
   color: var(--r-bulk);
 }
 
+.addBtn {
+  border: 1px solid var(--line);
+  background: none;
+  color: var(--ink2);
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 700;
+  padding: 6px 11px;
+  white-space: nowrap;
+}
+
+.emptyActions {
+  display: flex;
+  gap: 8px;
+  justify-content: center;
+  margin-top: 18px;
+}
+
+.emptyCta {
+  border: 0;
+  border-radius: var(--radius-md);
+  background: var(--brand);
+  color: #fff;
+  font-size: 13.5px;
+  font-weight: 800;
+  padding: 11px 18px;
+}
+
+.emptyGhost {
+  background: none;
+  color: var(--ink2);
+  border: 1px solid var(--line);
+  font-weight: 700;
+}
+
 .empty {
   margin: 46px 0;
   text-align: center;

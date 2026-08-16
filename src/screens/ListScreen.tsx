@@ -33,7 +33,18 @@ export function ListScreen() {
   const easiest = pickToday(items)
 
   return (
-    <Screen title="우리 집 비움 목록">
+    <Screen
+      title="우리 집 비움 목록"
+      action={
+        <button
+          type="button"
+          className={s.addBtn}
+          onClick={() => navigate('/add')}
+        >
+          + 직접 추가
+        </button>
+      }
+    >
       {easiest && (
         <section className={s.nudge}>
           <b>오늘 하나만 비워볼까요?</b>
@@ -91,9 +102,25 @@ export function ListScreen() {
         <p className={s.empty}>
           {filter === 'all' ? (
             <>
-              기다리는 물건이 없습니다.
+              아직 등록한 물건이 없습니다.
               <br />
-              비운 물건은 리포트에서 확인할 수 있습니다.
+              사진을 찍거나 직접 추가해 보세요.
+              <span className={s.emptyActions}>
+                <button
+                  type="button"
+                  className={s.emptyCta}
+                  onClick={() => navigate('/capture')}
+                >
+                  사진으로 판별
+                </button>
+                <button
+                  type="button"
+                  className={`${s.emptyCta} ${s.emptyGhost}`}
+                  onClick={() => navigate('/add')}
+                >
+                  직접 추가
+                </button>
+              </span>
             </>
           ) : (
             <>

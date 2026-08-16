@@ -2,6 +2,7 @@ import { useNavigate, useParams } from 'react-router'
 import { Screen } from '../components/Screen'
 import { ROUTE_BY_ID } from '../data/routeKinds'
 import { DESTINATION } from '../data/region'
+import { ACTION_LINKS } from '../data/actionLinks'
 import { NATIONWIDE, useActiveRegion } from '../lib/activeRegion'
 import { useItems } from '../store/items'
 import { formatWon, lookupFee } from '../lib/fees'
@@ -66,6 +67,7 @@ export function ResultScreen() {
   const remove = useItems((st) => st.remove)
   const regionOpt = useActiveRegion()
   const fees = regionOpt.fees ?? null
+  const action = ACTION_LINKS[item?.route ?? 'free']
 
   if (!item) {
     return (
@@ -170,13 +172,38 @@ export function ResultScreen() {
           </button>
         </>
       ) : item.route === 'bulk' && fees ? (
-        <button
-          type="button"
-          className={s.cta}
-          onClick={() => navigate(`/request/${item.id}`)}
-        >
-          신청 대행 맡기기
-        </button>
+        <>
+          {/* 실제로 신고가 이루어지는 곳 */}
+          <a
+            className={`${s.cta} ${s.linkBtn}`}
+            href={fees.reportUrl}
+            target="_blank"
+            rel="noreferrer"
+          >
+            {regionOpt.name}에 직접 신고하기 ↗
+          </a>
+          <p className={s.alt}>
+            신고와 결제는 구청 시스템에서 이루어집니다. 배출 스티커 번호를 받아
+            부착하세요.
+          </p>
+          {/* 개념 시연 — 실제 대행은 지자체 협약이 필요합니다 */}
+          <button
+            type="button"
+            className={`${s.cta} ${s.ghost}`}
+            onClick={() => navigate(`/request/${item.id}`)}
+          >
+            신청 대행이 어떻게 되는지 보기 (시연)
+          </button>
+          <button
+            type="button"
+            className={`${s.cta} ${s.ghost}`}
+            onClick={() =>
+              setStatus(item.id, 'requested', DESTINATION[item.route].reserved)
+            }
+          >
+            신고했어요
+          </button>
+        </>
       ) : item.route === 'bulk' ? (
         // 요금표가 없는 지역은 대행 신청을 걸 수 없습니다 —
         // 얼마를 결제할지 모르는 채로 승인 화면을 띄우면 안 됩니다.
@@ -187,20 +214,43 @@ export function ResultScreen() {
           주세요. 요금표가 확보되면 신청 대행이 열립니다.
         </div>
       ) : (
-        <button
-          type="button"
-          className={s.cta}
-          onClick={() => {
-            setStatus(item.id, 'requested', DESTINATION[item.route].reserved)
-            analytics.requestApproved(item.route, 0)
-          }}
-        >
-          {item.route === 'free'
-            ? '무상수거 예약하기'
-            : item.route === 'reuse'
-              ? '기부 픽업 예약하기'
-              : '수거함에 넣으러 가기'}
-        </button>
+        <>
+          {/* 우리가 대신 신청해 주는 게 아니라, 실제 창구로 보냅니다 */}
+          <a
+            className={`${s.cta} ${s.linkBtn}`}
+            href={action.url(regionOpt.name)}
+            target="_blank"
+            rel="noreferrer"
+          >
+            {action.goLabel} ↗
+          </a>
+          <p className={s.alt}>{action.note}</p>
+          {action.phone && (
+            <a
+              className={`${s.cta} ${s.ghost} ${s.linkBtn}`}
+              href={`tel:${action.phone.replace(/-/g, '')}`}
+            >
+              전화로 예약 · {action.phone}
+            </a>
+          )}
+          <button
+            type="button"
+            className={`${s.cta} ${s.ghost}`}
+            onClick={() => {
+              if (action.hasReservation) {
+                setStatus(item.id, 'requested', DESTINATION[item.route].reserved)
+                analytics.requestApproved(item.route, 0)
+              } else {
+                // 수거함은 예약 단계가 없습니다 — 넣고 오면 그걸로 끝입니다
+                setStatus(item.id, 'done', DESTINATION[item.route].completed)
+                analytics.itemDisposed(item.route)
+                navigate('/report')
+              }
+            }}
+          >
+            {action.doneLabel}
+          </button>
+        </>
       )}
 
       {fees ? (

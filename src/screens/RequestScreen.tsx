@@ -84,7 +84,18 @@ export function RequestScreen() {
   const total = item.fee + AGENT_FEE
 
   return (
-    <Screen title="신청 대행" back>
+    <Screen title="신청 대행 (시연)" back>
+      {/* 진짜 대행은 지자체와의 제휴·정산 계약이 있어야 가능합니다.
+          이 화면은 "협약이 있다면 이렇게 된다" 를 보여주는 개념 시연입니다. */}
+      <div className={s.prototype}>
+        <b>이 화면은 개념 시연입니다.</b>
+        <br />
+        실제 신고와 결제는 일어나지 않습니다. 지자체마다 신고 시스템이 다르고,
+        수수료를 대신 받아 납부하려면 구청과의 제휴·정산 계약이 필요합니다.
+        지금 실제로 신고하시려면 이전 화면의 <b>“{regionOpt.name}에 직접
+        신고하기”</b>를 이용해 주세요.
+      </div>
+
       <div className={s.target}>
         <span className={s.thumb}>
           <i style={{ background: kind.color }} />
@@ -133,10 +144,11 @@ export function RequestScreen() {
       {isApproved ? (
         <>
           <div className={s.approved}>
-            <b>승인 완료 · 신고가 접수됐습니다.</b>
+            <b>시연 완료 — 실제 신고는 접수되지 않았습니다.</b>
             <br />
-            배출 스티커 번호는 알림으로 보내드립니다. {dueDate} 저녁 8시에 배출
-            위치를 다시 안내합니다.
+            협약이 되어 있다면 여기서 결제가 이루어지고, 배출 스티커 번호가
+            알림으로 오고, {dueDate} 저녁 8시에 배출 위치를 다시 안내합니다.
+            실제 신고는 {regionOpt.name} 신고 사이트에서 해주세요.
           </div>
           <button
             type="button"
@@ -156,7 +168,7 @@ export function RequestScreen() {
             analytics.requestApproved(item.route, total)
           }}
         >
-          승인하고 {formatWon(total)} 결제하기
+          승인하기 (시연 · 결제 없음)
         </button>
       )}
     </Screen>

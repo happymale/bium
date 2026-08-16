@@ -15,6 +15,11 @@ const DAY = 86_400_000
  * ⚠ 소파 수수료는 목업의 7,000원이 아니라 서대문구 실제 요금표의 15,000원입니다.
  *   (쇼파 3인용 · 15,000원 — sdmBulkFees.ts 참고)
  */
+/** 시연용 예시 물건인지 — id 접두사로 구분합니다 */
+export function isDemo(item: Item): boolean {
+  return item.id.startsWith('seed-') || item.id.startsWith('done-')
+}
+
 function seed(now: number): Item[] {
   const at = (d: number) => now - d * DAY
   return [
@@ -164,7 +169,12 @@ type ItemsState = {
   update: (id: string, patch: Partial<Item>) => void
   setStatus: (id: string, status: ItemStatus, destination?: string) => void
   remove: (id: string) => void
-  resetToSeed: () => void
+  /** 시연용 예시 물건을 넣습니다 (설정에서 켤 때) */
+  loadDemoData: () => void
+  /** 시연용 예시만 걷어냅니다. 직접 추가한 물건은 남깁니다. */
+  clearDemoData: () => void
+  /** 직접 추가한 것까지 전부 비웁니다 */
+  clearAll: () => void
   /**
    * 서버에서 받아온 목록을 현재 상태에 병합합니다 (앱 시작 시 1회).
    *
@@ -186,7 +196,10 @@ function syncUp(item: Item | undefined) {
 export const useItems = create<ItemsState>()(
   persist(
     (set, get) => ({
-      items: seed(Date.now()),
+      // 처음 켰을 때는 비어 있습니다. 남의 물건이 들어 있으면 자기 목록으로
+      // 느껴지지 않고, "오늘 하나만 비워볼까요" 라는 말도 성립하지 않습니다.
+      // 시연용 예시는 설정에서 켤 수 있습니다.
+      items: [],
 
       add: (draft) => {
         const id = crypto.randomUUID()
@@ -236,7 +249,25 @@ export const useItems = create<ItemsState>()(
         if (target) void removeRemote(target)
       },
 
-      resetToSeed: () => set({ items: seed(Date.now()) }),
+      loadDemoData: () =>
+        set((s) => ({
+          // 이미 들어 있으면 중복 추가하지 않습니다
+          items: [
+            ...s.items.filter((i) => !isDemo(i)),
+            ...seed(Date.now()),
+          ].sort((a, b) => b.addedAt - a.addedAt),
+        })),
+
+      clearDemoData: () =>
+        set((s) => ({ items: s.items.filter((i) => !isDemo(i)) })),
+
+      clearAll: () => {
+        // 서버에도 반영합니다 (시연 데이터는 애초에 올라가지 않습니다)
+        for (const it of get().items.filter((i) => !isDemo(i))) {
+          void removeRemote(it)
+        }
+        set({ items: [] })
+      },
 
       mergeRemote: (remote) =>
         set((s) => {
@@ -249,9 +280,14 @@ export const useItems = create<ItemsState>()(
     }),
     {
       name: 'bium.items',
-      // v2: 리포트 집계를 위한 "처리 완료" 시드 6건 추가 + 소파 수수료를 실제 요금표 값으로 정정
-      version: 2,
-      migrate: () => ({ items: seed(Date.now()) }),
+      // v3: 시연용 예시를 기본값에서 뺐습니다. 기존 사용자의 예시 물건도
+      //     정리하되, 직접 추가한 물건은 남깁니다.
+      version: 3,
+      migrate: (persisted) => {
+        const prev = persisted as { items?: Item[] } | undefined
+        const mine = (prev?.items ?? []).filter((i) => !isDemo(i))
+        return { items: mine }
+      },
       // 용량이 넘치면 사진부터 버리고 물건 정보는 지킵니다
       storage: createJSONStorage(resilientLocalStorage),
     },

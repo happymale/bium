@@ -1,3 +1,17 @@
+.prototype {
+  margin-bottom: 15px;
+  padding: 13px 14px;
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--r-bulk);
+  font-size: 12.5px;
+  line-height: 1.65;
+  color: var(--ink2);
+}
+
+.prototype b {
+  color: var(--ink);
+}
+
 .target {
   display: flex;
   gap: 12px;
