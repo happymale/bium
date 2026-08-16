@@ -218,7 +218,7 @@ export function ResultScreen() {
           {/* 우리가 대신 신청해 주는 게 아니라, 실제 창구로 보냅니다 */}
           <a
             className={`${s.cta} ${s.linkBtn}`}
-            href={action.url(regionOpt.name)}
+            href={action.url(regionOpt)}
             target="_blank"
             rel="noreferrer"
           >

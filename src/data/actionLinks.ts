@@ -1,4 +1,22 @@
 import type { RouteId } from './routeKinds'
+import type { RegionOption } from './regions'
+
+/**
+ * 스마트서울맵의 "폐건전지 폐형광등 분리수거함" 테마 지도 링크.
+ *
+ * 서울시가 직접 운영하며 실제 수거함 6,000여 곳이 등록돼 있습니다.
+ * 일반 지도 검색으로는 수거함이 POI 로 잡히지 않아 결과가 비는데,
+ * 이 테마 지도는 위치를 점으로 찍어 보여줍니다.
+ *
+ * URL 은 base64 로 감싼 파라미터 문자열이고, 그 안의 경도·위도가
+ * 초기 화면 중심입니다. 사는 구 좌표를 넣어 그 동네부터 보이게 합니다.
+ */
+const BATTERY_THEME_ID = '11103389_2/3'
+
+function seoulMapUrl([lng, lat]: [string, string], zoom = 8): string {
+  const raw = `^BASEMAP_GEN^T:11^F^F^T^^^^^^${lng}^${lat}^${zoom}^${BATTERY_THEME_ID}^^^^theme^list^.`
+  return `https://map.seoul.go.kr/smgis2/tmc/${btoa(raw)}?tr_code=short`
+}
 
 /**
  * 경로별 "실제로 신청하는 곳".
@@ -18,7 +36,7 @@ export type ActionLink = {
   doneLabel: string
   /** 이 경로가 '예약'을 거치는지 (수거함은 바로 완료) */
   hasReservation: boolean
-  url: (regionName: string) => string
+  url: (region: RegionOption) => string
   /** 전화 예약이 가능하면 번호 */
   phone?: string
   note: string
@@ -39,17 +57,16 @@ export const ACTION_LINKS: Record<RouteId, ActionLink> = {
     doneLabel: '픽업 예약했어요',
     hasReservation: true,
     url: (region) =>
-      `https://www.google.com/search?q=${encodeURIComponent(`${region} 물품 기증 방문수거`)}`,
+      `https://www.google.com/search?q=${encodeURIComponent(`${region.name} 물품 기증 방문수거`)}`,
     note: '아름다운가게·굿윌스토어 등 단체마다 접수 방식이 다릅니다. 우리 동네에서 받아주는 곳을 찾아보세요.',
   },
   drop: {
-    goLabel: '가까운 수거함 찾기',
+    goLabel: '가까운 수거함 지도 보기',
     doneLabel: '넣고 왔어요',
     // 수거함은 예약이 없습니다 — 들고 가면 끝입니다
     hasReservation: false,
-    url: (region) =>
-      `https://map.naver.com/p/search/${encodeURIComponent(`${region} 폐건전지 수거함`)}`,
-    note: '주민센터·아파트 단지에 있습니다. 비용은 들지 않습니다.',
+    url: (region) => seoulMapUrl(region.center),
+    note: '서울시 스마트서울맵의 수거함 위치 지도가 우리 동네 중심으로 열립니다. 주민센터·아파트 단지·경로당에 있습니다.',
   },
   bulk: {
     goLabel: '신청 대행 맡기기',
