@@ -54,6 +54,8 @@ export function AddItemScreen() {
       fee,
       feeSpec: picked?.spec || undefined,
       feeMatchedName: picked?.name,
+      // 판별을 거치지 않았으므로 K2 분모에서 빠집니다
+      origin: 'manual',
     })
     navigate(`/result/${id}`)
   }

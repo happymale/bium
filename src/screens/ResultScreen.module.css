@@ -196,3 +196,88 @@
 .alt b {
   color: var(--ink2);
 }
+
+/* "종량제봉투에 버렸어요" — 카운터 메트릭용 정직한 출구.
+   눈에 띄면 안 되지만 숨겨서도 안 됩니다. 찾으면 있는 정도의 무게로 둡니다. */
+.honest {
+  margin-top: 18px;
+  padding-top: 14px;
+  border-top: 1px solid var(--grid);
+}
+
+.honestNote {
+  margin: 0;
+  font-size: 11.5px;
+  color: var(--muted);
+  line-height: 1.6;
+  text-align: center;
+}
+
+.honestBtn {
+  display: block;
+  width: 100%;
+  margin-top: 7px;
+  border: 0;
+  background: none;
+  color: var(--r-burn);
+  font-family: inherit;
+  font-size: 12.5px;
+  font-weight: 700;
+  padding: 6px 0;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+/* K9 — 재사용 성사 재확인. 완료 화면에서만 뜹니다. */
+.followUp {
+  margin-top: 14px;
+  padding: 12px 13px;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--line);
+  background: var(--page);
+}
+
+.followUpNote {
+  margin: 0;
+  font-size: 12px;
+  color: var(--ink2);
+  line-height: 1.6;
+}
+
+.followUpNote b {
+  color: var(--ink);
+}
+
+.followUpBtns {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: 10px;
+}
+
+.followUpBtn {
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  color: var(--ink2);
+  font-family: inherit;
+  font-size: 12.5px;
+  font-weight: 700;
+  padding: 9px 0;
+}
+
+/* K8 — 반려·실패 신고. 조용하게 둡니다. */
+.rejected {
+  display: block;
+  width: 100%;
+  margin-top: 10px;
+  border: 0;
+  background: none;
+  color: var(--muted);
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 700;
+  padding: 6px 0;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}

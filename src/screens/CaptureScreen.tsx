@@ -28,6 +28,12 @@ export function CaptureScreen() {
 
   const cameraRef = useRef<HTMLInputElement>(null)
   const albumRef = useRef<HTMLInputElement>(null)
+  /**
+   * K5 의 출발점 — 사진을 고른 시각.
+   * 제안서는 "사진 촬영 → 승인 완료 ≤ 60초"로 정의했으므로 등록 시각이 아니라
+   * 여기서부터 재야 합니다. 다시 찍으면 새로 잡힙니다.
+   */
+  const capturedAtRef = useRef<number | null>(null)
 
   const [phase, setPhase] = useState<Phase>('idle')
   const [image, setImage] = useState<PreparedImage | null>(null)
@@ -39,6 +45,7 @@ export function CaptureScreen() {
     setError('')
     setOutcome(null)
     setPhase('working')
+    capturedAtRef.current = Date.now()
     analytics.classifyStart(source)
     try {
       const prepared = await prepareImage(file)
@@ -55,6 +62,8 @@ export function CaptureScreen() {
         uncertain: result.uncertain,
         aiSource: c.source,
         elapsedMs: c.elapsedMs ?? 0,
+        category: c.category,
+        freeAlternative: c.freeAlternativeAvailable,
       })
       if (result.uncertain) analytics.lowConfidenceBlocked(bucket)
     } catch (err) {
@@ -75,8 +84,19 @@ export function CaptureScreen() {
 
   function save() {
     if (!outcome) return
-    analytics.itemAdded(outcome.draft.route, outcome.uncertain)
-    const id = addItem(outcome.draft)
+    const capturedAt = capturedAtRef.current ?? undefined
+    // 사진 판별을 거쳤으므로 origin 은 'ai' — K2 의 분모가 여기서 늘어납니다
+    analytics.itemAdded({
+      route: outcome.draft.route,
+      uncertain: outcome.uncertain,
+      origin: 'ai',
+      secondsFromCapture: capturedAt
+        ? (Date.now() - capturedAt) / 1000
+        : undefined,
+      category: outcome.draft.category,
+    })
+    // capturedAt 을 물건에 실어 보내면 며칠 뒤 승인해도 K5 를 계산할 수 있습니다
+    const id = addItem({ ...outcome.draft, capturedAt })
     navigate(`/result/${id}`)
 
     // 원본 사진은 서버에 따로 올립니다 (로컬엔 320px 썸네일만 둡니다).

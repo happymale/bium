@@ -7,6 +7,7 @@ import { useActiveRegion } from '../lib/activeRegion'
 import { useItems } from '../store/items'
 import { formatWon } from '../lib/fees'
 import { analytics } from '../lib/analytics'
+import { daysIdle, originOf } from '../types'
 import s from './RequestScreen.module.css'
 
 /** 비움 대행 수수료 (목업 ③ 기준) */
@@ -164,12 +165,23 @@ export function RequestScreen() {
           className={s.cta}
           onClick={() => {
             setApproved(true)
+            // 상태를 바꾸기 전에 읽어야 등록→신청까지의 일수가 나옵니다
+            const origin = originOf(item)
+            const idleDays = daysIdle(item)
             setStatus(
               item.id,
               'requested',
               destinationFor(item.route, regionOpt.name).reserved,
             )
             analytics.requestApproved(item.route, total)
+            analytics.itemRequested({
+              route: item.route,
+              origin,
+              daysSinceAdd: idleDays,
+              secondsFromCapture: item.capturedAt
+                ? (Date.now() - item.capturedAt) / 1000
+                : undefined,
+            })
           }}
         >
           승인하기 (시연 · 결제 없음)

@@ -1,0 +1,115 @@
+/* 결과 화면 안의 조용한 질문 블록.
+   주된 흐름(판별 → 실행)을 가리면 안 되므로 CTA 보다 약하게 둡니다. */
+
+.box {
+  margin-top: 10px;
+  padding: 11px 13px;
+  border-radius: var(--radius-md);
+  border: 1px dashed var(--line);
+  background: none;
+}
+
+.head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.q {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--ink2);
+}
+
+.tag {
+  font-size: 10.5px;
+  font-weight: 700;
+  color: var(--muted);
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  padding: 1px 7px;
+}
+
+.close {
+  margin-left: auto;
+  flex: 0 0 auto;
+  width: 24px;
+  height: 24px;
+  border: 0;
+  border-radius: 50%;
+  background: none;
+  color: var(--muted);
+  font-size: 17px;
+  line-height: 1;
+}
+
+.note {
+  margin: 4px 0 0;
+  font-size: 11.5px;
+  color: var(--muted);
+  line-height: 1.55;
+}
+
+.btns {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.btn {
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  color: var(--ink2);
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 700;
+  padding: 9px 0;
+}
+
+.chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 9px;
+}
+
+.chip {
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: var(--surface);
+  color: var(--ink2);
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 700;
+  padding: 7px 12px;
+}
+
+.skip {
+  display: block;
+  width: 100%;
+  margin-top: 9px;
+  border: 0;
+  background: none;
+  color: var(--muted);
+  font-family: inherit;
+  font-size: 11.5px;
+  font-weight: 700;
+  padding: 3px 0;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+/* 답한 뒤 — 더 조용하게 */
+.thanks {
+  border-style: solid;
+  background: var(--page);
+  font-size: 12px;
+  color: var(--ink2);
+  line-height: 1.6;
+}
+
+.thanks b {
+  color: var(--ink);
+}

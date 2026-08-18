@@ -14,10 +14,15 @@ function feeRows(): FeeRow[] {
 /**
  * 요금표 조회.
  *
- * 서대문구 표에서 수수료 0원 항목은 전부 전기·전자제품이며,
- * 이는 원형이 보전된 폐가전이 대형폐기물이 아니라 무상방문수거로 가기 때문입니다.
- * 따라서 요금표만으로 free / bulk 를 가를 수 있습니다.
- * (reuse / drop 은 요금표가 아니라 물건의 상태·종류로 판단 — 4단계 AI 판별의 몫)
+ * 수수료 0원으로 고시된 항목은 전부 전기·전자제품입니다. 원형이 보전된 폐가전은
+ * 대형폐기물이 아니라 무상방문수거로 가기 때문입니다. 그래서 0원 행이 있는 구에서는
+ * 요금표만으로 free / bulk 를 한 번 더 검증할 수 있습니다.
+ *
+ * ⚠ 다만 **0원 행을 아예 두지 않는 구가 절반쯤 됩니다.** 그런 구의 표는 폐가전을
+ *   아예 싣지 않거나 유상으로 적어두므로, 요금표發 free 보정이 걸리지 않습니다.
+ *   폐가전 판단의 1차 책임은 AI 에 있고 요금표는 보조 검증일 뿐입니다.
+ *
+ * (reuse / drop 은 요금표가 아니라 물건의 상태·종류로 판단 — AI 판별의 몫)
  */
 
 export type FeeLookup = {
@@ -34,72 +39,75 @@ function normalize(s: string) {
 }
 
 /**
- * 구청 표기와 일상 표기가 다른 품목의 별칭.
- * 예) 구청은 "쇼파"·"씽크대"·"메트리스"로 적지만 사람과 AI 는 "소파"·"싱크대"·"매트리스"라고 씁니다.
- * 좌변(일상 표기) → 우변(요금표 표기)
+ * 같은 물건을 가리키는 표기 묶음.
+ *
+ * ⚠ 한쪽 방향으로 고정하면 안 됩니다.
+ *   서울 25개 구를 넣고 보니 **18개 구는 "소파", 5개 구는 "쇼파"** 로 적습니다.
+ *   예전처럼 소파 → 쇼파 로만 치환하면 "소파" 표기를 쓰는 18개 구에서
+ *   조회가 통째로 실패합니다 (치환한 "쇼파" 가 표에 없으므로).
+ *   그래서 묶음 안의 표기를 **전부 시도**하고, 먼저 걸리는 것을 씁니다.
  */
-const ALIASES: Record<string, string> = {
-  소파: '쇼파',
-  쇼파베드: '쇼파',
-  싱크대: '씽크대',
-  매트리스: '메트리스',
-  러닝머신: '런닝머신',
-  트레드밀: '런닝머신',
-  전자레인지: '전자렌지',
-  전자레인지대: '전자렌지',
-  에어콘: '에어컨',
-  카페트: '카펫트',
-  카펫: '카펫트',
-  tv: '텔레비전',
-  티비: '텔레비전',
-  티브이: '텔레비전',
-  텔레비젼: '텔레비전',
-  모니터: '컴퓨터류',
-  데스크탑: '컴퓨터류',
-  데스크톱: '컴퓨터류',
-  컴퓨터: '컴퓨터류',
-  본체: '컴퓨터류',
-  프린터: '컴퓨터류프린터',
-  복합기: '컴퓨터류프린터',
-  소화기: '분말소화기',
-  책꽂이: '책장',
-  옷걸이대: '옷걸이',
-  행거: '옷걸이',
-  자전거헬스: '헬스자전거',
-  실내자전거: '헬스자전거',
-  전기장판: '옥장판',
-  전기매트: '옥장판',
-  스탠드: '스탠드조명',
-  선반: '진열대',
-  거울: '거울유리',
-  유모차유아: '유모차',
-  아기침대: '침대아기침대',
-  건조기: '의류건조기',
-}
+const VARIANTS: string[][] = [
+  ['소파', '쇼파', '쇼파베드', '소파베드'],
+  ['싱크대', '씽크대'],
+  ['매트리스', '메트리스'],
+  ['러닝머신', '런닝머신', '트레드밀'],
+  ['전자레인지', '전자렌지'],
+  ['에어컨', '에어콘'],
+  ['카펫', '카펫트', '카페트'],
+  ['텔레비전', 'tv', '티비', '티브이', '텔레비젼'],
+  ['컴퓨터류', '컴퓨터', '데스크탑', '데스크톱', '모니터', '본체', 'pc'],
+  ['컴퓨터류프린터', '프린터', '복합기'],
+  ['분말소화기', '소화기'],
+  ['책장', '책꽂이'],
+  ['옷걸이', '옷걸이대', '행거'],
+  ['헬스자전거', '실내자전거', '자전거헬스'],
+  ['옥장판', '전기장판', '전기매트'],
+  ['스탠드조명', '스탠드'],
+  ['진열대', '선반'],
+  ['거울유리', '거울'],
+  ['유모차', '유모차유아'],
+  ['의류건조기', '건조기'],
+]
 
-/** 별칭을 요금표 표기로 치환 */
-function canonical(q: string): string {
-  const n = normalize(q)
-  if (ALIASES[n]) return ALIASES[n]
-  // 부분 포함 별칭 ("3인용 소파" → "쇼파")
-  for (const [from, to] of Object.entries(ALIASES)) {
-    if (from.length >= 2 && n.includes(from)) return to
+/**
+ * 조회에 시도해 볼 표기들. 원문이 항상 첫 번째입니다 —
+ * 우리 구 표기가 이미 맞다면 굳이 치환할 이유가 없습니다.
+ */
+function candidateQueries(query: string): string[] {
+  const n = normalize(query)
+  if (!n) return []
+  const out = [n]
+  for (const group of VARIANTS) {
+    const hit = group.find((v) => n.includes(normalize(v)))
+    if (!hit) continue
+    for (const v of group) {
+      const swapped = n.split(normalize(hit)).join(normalize(v))
+      if (!out.includes(swapped)) out.push(swapped)
+      // 품목명만으로도 시도 ("3인용소파" → "소파")
+      const bare = normalize(v)
+      if (!out.includes(bare)) out.push(bare)
+    }
   }
-  return n
+  return out
 }
 
-/** 품목명으로 요금표를 조회합니다. 별칭 치환 + 부분 일치(양방향)까지 허용. */
-export function lookupFee(query: string): FeeLookup | null {
-  const q = canonical(query)
-  if (!q) return null
-
+function matchRows(q: string): FeeRow[] {
   const exact = feeRows().filter((r) => normalize(r.name) === q)
-  const partial = feeRows().filter((r) => {
+  if (exact.length) return exact
+  return feeRows().filter((r) => {
     const n = normalize(r.name)
     return n.includes(q) || q.includes(n)
   })
+}
 
-  const matched = exact.length ? exact : partial
+/** 품목명으로 요금표를 조회합니다. 표기 변형 + 부분 일치(양방향)까지 허용. */
+export function lookupFee(query: string): FeeLookup | null {
+  let matched: FeeRow[] = []
+  for (const q of candidateQueries(query)) {
+    matched = matchRows(q)
+    if (matched.length) break
+  }
   if (!matched.length) return null
 
   const fees = matched.map((r) => r.fee)

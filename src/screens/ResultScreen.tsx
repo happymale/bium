@@ -1,5 +1,7 @@
 import { useNavigate, useParams } from 'react-router'
 import { Screen } from '../components/Screen'
+import { AccuracyCheck } from '../components/AccuracyCheck'
+import { ItemContext } from '../components/ItemContext'
 import { ROUTE_BY_ID } from '../data/routeKinds'
 import { destinationFor } from '../data/region'
 import { ACTION_LINKS } from '../data/actionLinks'
@@ -8,6 +10,7 @@ import { useItems } from '../store/items'
 import { formatWon, lookupFee } from '../lib/fees'
 import { analytics } from '../lib/analytics'
 import type { Item } from '../types'
+import { daysIdle, originOf } from '../types'
 import s from './ResultScreen.module.css'
 
 const HEADLINE: Record<string, string> = {
@@ -64,6 +67,9 @@ export function ResultScreen() {
   const navigate = useNavigate()
   const item = useItems((st) => st.items.find((i) => i.id === id))
   const setStatus = useItems((st) => st.setStatus)
+  const markWasteBag = useItems((st) => st.markWasteBag)
+  const markRejected = useItems((st) => st.markRejected)
+  const setReuseOutcome = useItems((st) => st.setReuseOutcome)
   const remove = useItems((st) => st.remove)
   const regionOpt = useActiveRegion()
   const fees = regionOpt.fees ?? null
@@ -81,6 +87,13 @@ export function ResultScreen() {
 
   const kind = ROUTE_BY_ID[item.route]
   const cost = costLine(item)
+
+  // K2·K3·K5 기록용. 상태를 바꾸기 **전에** 읽어야 등록→지금까지의 일수가 나옵니다.
+  const origin = originOf(item)
+  const idleDays = daysIdle(item)
+  const secondsFromCapture = item.capturedAt
+    ? (Date.now() - item.capturedAt) / 1000
+    : undefined
   const cf = regionOpt.supported
     ? lookupFee(item.feeMatchedName ?? item.name)
     : null
@@ -139,6 +152,12 @@ export function ResultScreen() {
         </span>
       </div>
 
+      {/* K1 — 판별을 거친 물건에만 묻고, 답은 강제하지 않습니다 */}
+      <AccuracyCheck item={item} />
+
+      {/* K0 · K7 · 카운터③ — 접힌 상태로 두어 실행 흐름을 막지 않습니다 */}
+      <ItemContext item={item} />
+
       <div className={s.warn}>
         <span className={s.warnMark}>✕</span>
         <div>
@@ -170,7 +189,14 @@ export function ResultScreen() {
                 'done',
                 destinationFor(item.route, regionOpt.name).completed,
               )
-              analytics.itemDisposed(item.route)
+              analytics.itemDisposed({
+                route: item.route,
+                origin,
+                daysSinceAdd: idleDays,
+                disposal: 'as_guided',
+                secondsFromCapture,
+                category: item.category,
+              })
               navigate('/report')
             }}
           >
@@ -203,13 +229,19 @@ export function ResultScreen() {
           <button
             type="button"
             className={`${s.cta} ${s.ghost}`}
-            onClick={() =>
+            onClick={() => {
               setStatus(
                 item.id,
                 'requested',
                 destinationFor(item.route, regionOpt.name).reserved,
               )
-            }
+              analytics.itemRequested({
+                route: item.route,
+                origin,
+                daysSinceAdd: idleDays,
+                secondsFromCapture,
+              })
+            }}
           >
             신고했어요
           </button>
@@ -254,6 +286,12 @@ export function ResultScreen() {
                   destinationFor(item.route, regionOpt.name).reserved,
                 )
                 analytics.requestApproved(item.route, 0)
+                analytics.itemRequested({
+                  route: item.route,
+                  origin,
+                  daysSinceAdd: idleDays,
+                  secondsFromCapture,
+                })
               } else {
                 // 수거함은 예약 단계가 없습니다 — 넣고 오면 그걸로 끝입니다
                 setStatus(
@@ -261,7 +299,14 @@ export function ResultScreen() {
                   'done',
                   destinationFor(item.route, regionOpt.name).completed,
                 )
-                analytics.itemDisposed(item.route)
+                analytics.itemDisposed({
+                  route: item.route,
+                  origin,
+                  daysSinceAdd: idleDays,
+                  disposal: 'as_guided',
+                  secondsFromCapture,
+                  category: item.category,
+                })
                 navigate('/report')
               }
             }}
@@ -287,6 +332,113 @@ export function ResultScreen() {
         >
           {regionOpt.name} 대형폐기물 신고처 찾기
         </a>
+      )}
+
+      {/* K9 — 재사용·기부로 보낸 물건이 실제로 다음 사용자에게 갔는지.
+          원래는 파트너가 회신해야 하는 값이라, 연동 전에는 물어서 근사합니다. */}
+      {item.status === 'done' &&
+        item.route === 'reuse' &&
+        item.disposal !== 'waste_bag' &&
+        item.reuseOutcome == null && (
+          <div className={s.followUp}>
+            <p className={s.followUpNote}>
+              보내신 물건이 <b>실제로 다음 사람에게 갔나요?</b> 이 답이 대표
+              지표(다시 쓰이게 된 비율)의 분자가 됩니다.
+            </p>
+            <div className={s.followUpBtns}>
+              <button
+                type="button"
+                className={s.followUpBtn}
+                onClick={() => {
+                  setReuseOutcome(item.id, 'completed')
+                  analytics.reuseOutcome('completed', item.route)
+                }}
+              >
+                네, 팔리거나 기증됐어요
+              </button>
+              <button
+                type="button"
+                className={s.followUpBtn}
+                onClick={() => {
+                  setReuseOutcome(item.id, 'returned')
+                  analytics.reuseOutcome('returned', item.route)
+                }}
+              >
+                거절돼 돌아왔어요
+              </button>
+              <button
+                type="button"
+                className={s.followUpBtn}
+                onClick={() => {
+                  setReuseOutcome(item.id, 'unknown')
+                  analytics.reuseOutcome('unknown', item.route)
+                }}
+              >
+                아직 몰라요
+              </button>
+            </div>
+          </div>
+        )}
+
+      {/* K8 — 신고 반려·예약 실패. AI 판단이 지자체 규정과 어긋난 사례입니다.
+          이 출구가 없으면 "판단이 틀렸다"를 영영 셀 수 없습니다. */}
+      {item.status !== 'pending' && item.outcome !== 'rejected' && (
+        <button
+          type="button"
+          className={s.rejected}
+          onClick={() => {
+            if (
+              !confirm(
+                `"${item.name}" 신고·예약이 받아들여지지 않았나요? 다시 처리 대기로 돌려놓습니다.`,
+              )
+            )
+              return
+            markRejected(item.id)
+            analytics.outcomeRejected(item.route, 'user_reported')
+          }}
+        >
+          신고가 반려됐거나 예약이 안 됐어요
+        </button>
+      )}
+
+      {item.outcome === 'rejected' && (
+        <p className={s.alt}>
+          반려된 기록이 남아 있습니다. 판별이 지자체 규정과 어긋났는지 확인하는
+          데 씁니다 — 아래 <b>구청에 물어보기</b>로 정확한 방법을 확인해 주세요.
+        </p>
+      )}
+
+      {/* 카운터 메트릭 "종량제 경로 선택률" 을 재려면 이 출구가 있어야 합니다.
+          없으면 안내를 무시한 사용자는 그냥 이탈로만 보이고, 10% 경보 기준을
+          계산할 데이터가 아예 생기지 않습니다. 자책을 유도하지 않는 문구로 둡니다. */}
+      {item.status !== 'done' && (
+        <div className={s.honest}>
+          <p className={s.honestNote}>
+            안내한 방법으로 못 하셨어도 괜찮습니다. 그대로 기록해 주시면 어디서
+            막히는지 알 수 있습니다.
+          </p>
+          <button
+            type="button"
+            className={s.honestBtn}
+            onClick={() => {
+              if (!confirm(`"${item.name}"을(를) 종량제봉투에 버린 것으로 기록할까요?`))
+                return
+              markWasteBag(item.id)
+              analytics.wasteBagChosen(item.route, idleDays)
+              analytics.itemDisposed({
+                route: item.route,
+                origin,
+                daysSinceAdd: idleDays,
+                disposal: 'waste_bag',
+                secondsFromCapture,
+                category: item.category,
+              })
+              navigate('/report')
+            }}
+          >
+            종량제봉투에 버렸어요
+          </button>
+        </div>
       )}
 
       <button

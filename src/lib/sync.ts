@@ -1,4 +1,17 @@
-import type { Item, ItemStatus } from '../types'
+import type {
+  Accuracy,
+  AccuracyNote,
+  AcquiredAge,
+  Category,
+  Disposal,
+  IdleBefore,
+  Item,
+  ItemOrigin,
+  ItemStatus,
+  Outcome,
+  ReuseOutcome,
+  Trigger,
+} from '../types'
 import type { RouteId } from '../data/routeKinds'
 import { ensureSession, supabase } from './supabase'
 
@@ -27,6 +40,34 @@ type Row = {
   added_at: string
   disposed_at: string | null
   destination: string | null
+  /* ── 측정용 (schema-03-metrics.sql) ──
+     이 컬럼이 없는 서버에 붙으면 undefined 가 되고, 그러면 rowToItem 이
+     로컬 값을 지워버립니다. mergeRemote 가 그걸 막아줍니다. */
+  origin: string | null
+  captured_at: string | null
+  requested_at: string | null
+  disposal: string | null
+  accuracy: string | null
+  accuracy_note: string | null
+  accuracy_dismissed: boolean | null
+  category: string | null
+  free_alternative_available: boolean | null
+  trigger: string | null
+  idle_before: string | null
+  acquired_age: string | null
+  outcome: string | null
+  reuse_outcome: string | null
+  context_dismissed: boolean | null
+}
+
+/** timestamptz → epoch ms. 값이 없으면 undefined 로 둡니다. */
+function ms(v: string | null | undefined): number | undefined {
+  return v ? new Date(v).getTime() : undefined
+}
+
+/** epoch ms → timestamptz */
+function iso(v: number | undefined): string | null {
+  return v ? new Date(v).toISOString() : null
 }
 
 function rowToItem(r: Row): Item {
@@ -42,8 +83,25 @@ function rowToItem(r: Row): Item {
     basis: r.basis ?? undefined,
     status: r.status as ItemStatus,
     addedAt: new Date(r.added_at).getTime(),
-    disposedAt: r.disposed_at ? new Date(r.disposed_at).getTime() : undefined,
+    disposedAt: ms(r.disposed_at),
     destination: r.destination ?? undefined,
+
+    origin: (r.origin as ItemOrigin | null) ?? undefined,
+    capturedAt: ms(r.captured_at),
+    requestedAt: ms(r.requested_at),
+    disposal: (r.disposal as Disposal | null) ?? undefined,
+    accuracy: (r.accuracy as Accuracy | null) ?? undefined,
+    accuracyNote: (r.accuracy_note as AccuracyNote | null) ?? undefined,
+    accuracyDismissed: r.accuracy_dismissed ?? undefined,
+
+    category: (r.category as Category | null) ?? undefined,
+    freeAlternativeAvailable: r.free_alternative_available ?? undefined,
+    trigger: (r.trigger as Trigger | null) ?? undefined,
+    idleBefore: (r.idle_before as IdleBefore | null) ?? undefined,
+    acquiredAge: (r.acquired_age as AcquiredAge | null) ?? undefined,
+    outcome: (r.outcome as Outcome | null) ?? undefined,
+    reuseOutcome: (r.reuse_outcome as ReuseOutcome | null) ?? undefined,
+    contextDismissed: r.context_dismissed ?? undefined,
   }
 }
 
@@ -61,8 +119,25 @@ function itemToRow(i: Item, userId: string) {
     basis: i.basis ?? null,
     status: i.status,
     added_at: new Date(i.addedAt).toISOString(),
-    disposed_at: i.disposedAt ? new Date(i.disposedAt).toISOString() : null,
+    disposed_at: iso(i.disposedAt),
     destination: i.destination ?? null,
+
+    origin: i.origin ?? null,
+    captured_at: iso(i.capturedAt),
+    requested_at: iso(i.requestedAt),
+    disposal: i.disposal ?? null,
+    accuracy: i.accuracy ?? null,
+    accuracy_note: i.accuracyNote ?? null,
+    accuracy_dismissed: i.accuracyDismissed ?? false,
+
+    category: i.category ?? null,
+    free_alternative_available: i.freeAlternativeAvailable ?? null,
+    trigger: i.trigger ?? null,
+    idle_before: i.idleBefore ?? null,
+    acquired_age: i.acquiredAge ?? null,
+    outcome: i.outcome ?? null,
+    reuse_outcome: i.reuseOutcome ?? null,
+    context_dismissed: i.contextDismissed ?? false,
   }
 }
 

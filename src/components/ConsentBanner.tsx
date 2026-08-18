@@ -1,5 +1,10 @@
 import { useState } from 'react'
-import { analyticsAvailable, getConsent, setConsent } from '../lib/analytics'
+import {
+  analytics,
+  analyticsAvailable,
+  getConsent,
+  setConsent,
+} from '../lib/analytics'
 import s from './ConsentBanner.module.css'
 
 /**
@@ -16,6 +21,9 @@ export function ConsentBanner() {
   function decide(next: 'granted' | 'denied') {
     setConsent(next)
     setState(next)
+    // 거부는 보낼 수 없습니다 — 거부하면 gtag 를 애초에 내려받지 않기 때문입니다.
+    // 그래서 GA 로는 동의율의 분자만 알 수 있습니다 (분모는 운영자가 셉니다).
+    if (next === 'granted') analytics.consentGranted()
   }
 
   return (

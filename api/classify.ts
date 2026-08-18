@@ -45,7 +45,13 @@ export const SYSTEM_PROMPT = `당신은 서울 자치구 주민의 폐기물 배
 - confidence: 0.0~1.0. 물건 종류와 재질을 모두 확신할 때만 0.9 이상을 주십시오. 종류는 알지만 재질·상태가 불확실하면 0.6~0.8, 물건 자체가 불분명하면 0.5 미만.
 - basis: 왜 이 경로인지 2~3문장. 사용자에게 그대로 보여지는 문장이니 존댓말 평서문으로 쓰고, 재질·부착물 근거를 담으십시오. **금액이나 수수료 숫자는 절대 쓰지 마십시오** — 요금은 앱이 실제 요금표에서 따로 조회해 표시합니다.
 - warning: 이 물건을 종량제봉투에 넣거나 잘못 배출하면 생기는 구체적 문제를 한 문장으로.
-- reusable: 남이 다시 쓸 수 있을 만큼 상태가 양호한지.`
+- reusable: 남이 다시 쓸 수 있을 만큼 상태가 양호한지.
+- category: 큰 분류 하나. 카테고리별로 재사용 비율이 얼마나 다른지 보기 위한 값입니다.
+  가구 furniture · 가전 appliance · 의류·침구 textile · 도서·완구 book_toy ·
+  생활잡화 houseware · 유해물질 hazardous · 그 밖에 other
+- freeAlternativeAvailable: **수수료를 안 내고 내보낼 길이 있는지.**
+  bulk 로 판정했더라도 무상수거 대상이거나 상태가 좋아 기부가 가능하다면 true 입니다.
+  이 값은 "무료로 될 일을 유료로 안내하고 있지 않은지" 감시하는 데 쓰이니 정직하게 답하십시오.`
 
 const CLASSIFY_SCHEMA = {
   type: 'object',
@@ -65,6 +71,25 @@ const CLASSIFY_SCHEMA = {
     basis: { type: 'string', description: '경로 판단 근거 2~3문장, 금액 언급 금지' },
     warning: { type: 'string', description: '잘못 배출 시 생기는 문제 한 문장' },
     reusable: { type: 'boolean', description: '다시 쓸 수 있는 상태인지' },
+    category: {
+      type: 'string',
+      enum: [
+        'furniture',
+        'appliance',
+        'textile',
+        'book_toy',
+        'houseware',
+        'hazardous',
+        'other',
+      ],
+      description:
+        '물건의 큰 분류. furniture 가구 · appliance 가전 · textile 의류·침구 · book_toy 도서·완구 · houseware 생활잡화 · hazardous 유해물질(건전지·의약품·형광등) · other 그 밖에',
+    },
+    freeAlternativeAvailable: {
+      type: 'boolean',
+      description:
+        '수수료를 내지 않고 내보낼 길이 실제로 있는지. 폐가전 무상수거 대상이거나, 상태가 좋아 기부·재사용이 가능하거나, 전용 수거함 품목이면 true. 부피가 크고 상태가 나빠 대형폐기물밖에 방법이 없으면 false. bulk 로 판정했더라도 무료 길이 있다면 반드시 true 로 두십시오.',
+    },
   },
   required: [
     'itemName',
@@ -75,6 +100,8 @@ const CLASSIFY_SCHEMA = {
     'basis',
     'warning',
     'reusable',
+    'category',
+    'freeAlternativeAvailable',
   ],
   additionalProperties: false,
 } as const
@@ -88,6 +115,17 @@ export type Classification = {
   basis: string
   warning: string
   reusable: boolean
+  /** K10 — 카테고리별 재사용 비율 분해용 */
+  category?:
+    | 'furniture'
+    | 'appliance'
+    | 'textile'
+    | 'book_toy'
+    | 'houseware'
+    | 'hazardous'
+    | 'other'
+  /** 카운터② — 수수료 없이 내보낼 길이 있었는지 (이해충돌 감시용) */
+  freeAlternativeAvailable?: boolean
 }
 
 export type ClassifyResult = Classification & {
@@ -136,6 +174,8 @@ const MOCKS: Classification[] = [
     warning:
       '종량제봉투에 넣으면 소각 시 유해물질이 나오고 안에 든 구리·플라스틱도 회수되지 않습니다.',
     reusable: false,
+    category: 'appliance',
+    freeAlternativeAvailable: true,
   },
   {
     itemName: '3인용 소파',
@@ -148,6 +188,8 @@ const MOCKS: Classification[] = [
     warning:
       '신고 없이 내놓으면 수거되지 않고 무단투기로 과태료가 부과될 수 있습니다.',
     reusable: false,
+    category: 'furniture',
+    freeAlternativeAvailable: false,
   },
   {
     itemName: '폐건전지 12개',
@@ -160,6 +202,8 @@ const MOCKS: Classification[] = [
     warning:
       '종량제봉투에 넣으면 수은·카드뮴이 소각·매립 과정에서 토양과 대기로 새어 나갑니다.',
     reusable: false,
+    category: 'hazardous',
+    freeAlternativeAvailable: true,
   },
 ]
 

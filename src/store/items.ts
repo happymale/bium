@@ -2,8 +2,8 @@ import { create } from 'zustand'
 import { createJSONStorage, persist } from 'zustand/middleware'
 import { resilientLocalStorage } from './resilientStorage'
 import { pushItem, removeItem as removeRemote } from '../lib/sync'
-import type { Item, ItemStatus } from '../types'
-import { daysIdle } from '../types'
+import type { Item, ItemStatus, ReuseOutcome } from '../types'
+import { daysIdle, originOf } from '../types'
 import type { RouteId } from '../data/routeKinds'
 
 const DAY = 86_400_000
@@ -22,7 +22,7 @@ export function isDemo(item: Item): boolean {
 
 function seed(now: number): Item[] {
   const at = (d: number) => now - d * DAY
-  return [
+  const rows: Item[] = [
     {
       id: 'seed-battery',
       name: '폐건전지 12개',
@@ -161,6 +161,8 @@ function seed(now: number): Item[] {
       destination: '서대문구 처리장 · 배출 완료',
     },
   ]
+  // 시연용 예시는 지표 분모에서 빠져야 합니다 (K2 는 실제 판별한 물건만 셉니다)
+  return rows.map((it) => ({ ...it, origin: 'demo' as const }))
 }
 
 type ItemsState = {
@@ -168,6 +170,12 @@ type ItemsState = {
   add: (item: Omit<Item, 'id' | 'addedAt' | 'status'>) => string
   update: (id: string, patch: Partial<Item>) => void
   setStatus: (id: string, status: ItemStatus, destination?: string) => void
+  /** 안내를 보고도 종량제봉투로 보냈음을 기록 (카운터 메트릭용) */
+  markWasteBag: (id: string) => void
+  /** K8 — 신고 반려·예약 실패. 안내한 방법이 통하지 않았음 */
+  markRejected: (id: string) => void
+  /** K9 — 재사용 경로가 실제로 성사됐는지 */
+  setReuseOutcome: (id: string, outcome: ReuseOutcome) => void
   remove: (id: string) => void
   /** 시연용 예시 물건을 넣습니다 (설정에서 켤 때) */
   loadDemoData: () => void
@@ -183,6 +191,13 @@ type ItemsState = {
    *   같은 id 는 서버 값을 쓰고, 서버에 없는 로컬 물건은 그대로 둡니다.
    */
   mergeRemote: (remote: Item[]) => void
+}
+
+/** undefined 인 키를 걷어냅니다 — 스프레드로 로컬 값을 지우지 않기 위해서입니다 */
+function definedOnly(item: Item): Partial<Item> {
+  return Object.fromEntries(
+    Object.entries(item).filter(([, v]) => v !== undefined),
+  ) as Partial<Item>
 }
 
 /**
@@ -228,6 +243,7 @@ export const useItems = create<ItemsState>()(
 
       setStatus: (id, status, destination) => {
         let updated: Item | undefined
+        const now = Date.now()
         set((s) => ({
           items: s.items.map((it) => {
             if (it.id !== id) return it
@@ -235,8 +251,86 @@ export const useItems = create<ItemsState>()(
               ...it,
               status,
               destination: destination ?? it.destination,
-              disposedAt: status === 'done' ? Date.now() : it.disposedAt,
+              // 퍼널 시각은 한 번 찍히면 덮어쓰지 않습니다.
+              // 수거함처럼 예약 없이 바로 완료되는 경로는 두 시각이 같습니다.
+              requestedAt:
+                it.requestedAt ??
+                (status === 'requested' || status === 'done' ? now : undefined),
+              disposedAt: status === 'done' ? (it.disposedAt ?? now) : it.disposedAt,
+              // 일반 버튼으로 완료했다면 안내대로 한 것입니다.
+              // 종량제로 갔다는 사실은 markWasteBag 만 기록합니다.
+              disposal:
+                status === 'done' ? (it.disposal ?? 'as_guided') : it.disposal,
             }
+            return updated
+          }),
+        }))
+        syncUp(updated)
+      },
+
+      /**
+       * "안내를 봤지만 종량제봉투에 버렸다" 를 기록합니다.
+       *
+       * ⚠ route 는 건드리지 않습니다. 안내한 경로가 남아 있어야
+       *   카운터 메트릭의 분모(안내받은 물건)가 유지됩니다.
+       */
+      markWasteBag: (id) => {
+        let updated: Item | undefined
+        const now = Date.now()
+        set((s) => ({
+          items: s.items.map((it) => {
+            if (it.id !== id) return it
+            updated = {
+              ...it,
+              status: 'done',
+              disposal: 'waste_bag',
+              requestedAt: it.requestedAt ?? now,
+              disposedAt: now,
+              destination: '종량제봉투 · 소각',
+            }
+            return updated
+          }),
+        }))
+        syncUp(updated)
+      },
+
+      /**
+       * K8 — 안내한 방법이 통하지 않았습니다 (신고 반려·예약 실패).
+       *
+       * 상태는 pending 으로 되돌립니다. 아직 집에 있는 물건이기 때문입니다.
+       * outcome 만 남겨 "AI 판단이 규정과 어긋난 사례" 로 셉니다.
+       */
+      markRejected: (id) => {
+        let updated: Item | undefined
+        set((s) => ({
+          items: s.items.map((it) => {
+            if (it.id !== id) return it
+            updated = {
+              ...it,
+              status: 'pending',
+              outcome: 'rejected',
+              destination: undefined,
+              disposedAt: undefined,
+              disposal: undefined,
+            }
+            return updated
+          }),
+        }))
+        syncUp(updated)
+      },
+
+      /**
+       * K9 — 재사용 경로로 보낸 물건이 실제로 다음 사용자에게 갔는지.
+       *
+       * ⚠ 원래는 파트너가 회신해야 확정되는 값입니다. 연동이 없으니
+       *   사용자에게 다시 물어 근사합니다 — 대표 지표의 분자가 여기 걸립니다.
+       */
+      setReuseOutcome: (id, outcome) => {
+        let updated: Item | undefined
+        set((s) => ({
+          items: s.items.map((it) => {
+            if (it.id !== id) return it
+            updated = { ...it, reuseOutcome: outcome }
             return updated
           }),
         }))
@@ -272,7 +366,13 @@ export const useItems = create<ItemsState>()(
       mergeRemote: (remote) =>
         set((s) => {
           const byId = new Map(s.items.map((i) => [i.id, i]))
-          for (const r of remote) byId.set(r.id, r) // 서버 값 우선
+          for (const r of remote) {
+            const local = byId.get(r.id)
+            // 서버 값을 우선하되, **서버가 모르는 필드는 로컬을 지킵니다.**
+            // 측정 컬럼(origin·accuracy·disposal·captured_at…)을 아직 만들지 않은
+            // 서버에 붙으면 통째로 덮어쓸 때 K1·K5 기록이 전부 날아갑니다.
+            byId.set(r.id, local ? { ...local, ...definedOnly(r) } : r)
+          }
           const merged = [...byId.values()]
           merged.sort((a, b) => b.addedAt - a.addedAt)
           return { items: merged }
@@ -282,10 +382,13 @@ export const useItems = create<ItemsState>()(
       name: 'bium.items',
       // v3: 시연용 예시를 기본값에서 뺐습니다. 기존 사용자의 예시 물건도
       //     정리하되, 직접 추가한 물건은 남깁니다.
-      version: 3,
+      // v4: 측정용 origin 을 채웁니다. 기존 물건은 흔적으로 추정합니다.
+      version: 4,
       migrate: (persisted) => {
         const prev = persisted as { items?: Item[] } | undefined
-        const mine = (prev?.items ?? []).filter((i) => !isDemo(i))
+        const mine = (prev?.items ?? [])
+          .filter((i) => !isDemo(i))
+          .map((i) => ({ ...i, origin: i.origin ?? originOf(i) }))
         return { items: mine }
       },
       // 용량이 넘치면 사진부터 버리고 물건 정보는 지킵니다

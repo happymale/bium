@@ -4,7 +4,8 @@ import {
   REGION_OPTIONS,
   findRegionOption,
 } from '../data/regions'
-import { useProfile } from '../store/profile'
+import { SEGMENT_LABEL, useProfile, type Segment } from '../store/profile'
+import { readGroupFromUrl } from '../lib/experiment'
 import s from './OnboardingScreen.module.css'
 
 /**
@@ -20,6 +21,7 @@ export function OnboardingScreen() {
   const [nickname, setNickname] = useState('')
   const [regionId, setRegionId] = useState(DEFAULT_REGION_ID)
   const [dong, setDong] = useState('')
+  const [segment, setSegment] = useState<Segment>('')
 
   const picked = findRegionOption(regionId)
   const canStart = nickname.trim().length > 0
@@ -109,6 +111,26 @@ export function OnboardingScreen() {
         />
       </div>
 
+      {/* 세그먼트별 전환율(K6) 측정용. 선택 입력입니다 —
+          필수로 만들면 온보딩 이탈이 늘어납니다. */}
+      <div className={s.field}>
+        <label className={s.label} htmlFor="segment">
+          지금 사는 형태{' '}
+          <span className={s.hint}>· 선택. 서비스 개선 통계에만 씁니다</span>
+        </label>
+        <select
+          id="segment"
+          className={s.select}
+          value={segment}
+          onChange={(e) => setSegment(e.target.value as Segment)}
+        >
+          <option value="">답하지 않음</option>
+          <option value="solo_new">{SEGMENT_LABEL.solo_new}</option>
+          <option value="solo_veteran">{SEGMENT_LABEL.solo_veteran}</option>
+          <option value="family">{SEGMENT_LABEL.family}</option>
+        </select>
+      </div>
+
       <div className={s.spacer} />
 
       <button
@@ -120,6 +142,10 @@ export function OnboardingScreen() {
             nickname: nickname.trim(),
             regionId,
             dong: dong.trim(),
+            // 참가군은 초대 링크(?g=A / ?g=B)로만 배정됩니다 —
+            // 사용자가 자기 그룹을 알면 §6-4 의 A/B 비교가 무의미해집니다
+            experimentGroup: readGroupFromUrl(),
+            segment,
           })
         }
       >

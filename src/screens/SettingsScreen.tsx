@@ -6,7 +6,7 @@ import { CONFIDENCE_THRESHOLD, modelLabel } from '../lib/classify'
 import { NATIONWIDE, useActiveRegion } from '../lib/activeRegion'
 import { supabaseEnabled } from '../lib/supabase'
 import { useItems } from '../store/items'
-import { useProfile } from '../store/profile'
+import { SEGMENT_LABEL, useProfile } from '../store/profile'
 import { useSettings } from '../store/settings'
 import { useTheme } from '../store/theme'
 import s from './SettingsScreen.module.css'
@@ -23,7 +23,7 @@ export function SettingsScreen() {
   const demoData = useSettings((st) => st.demoData)
   const setDemoData = useSettings((st) => st.setDemoData)
 
-  const { nickname, dong, regionId } = useProfile()
+  const { nickname, dong, regionId, segment } = useProfile()
   const setProfile = useProfile((st) => st.setProfile)
   const regionOpt = useActiveRegion()
   const fees = regionOpt.fees
@@ -80,6 +80,25 @@ export function SettingsScreen() {
               대형폐기물 <b>수수료는 금액 대신 구청 문의로 안내</b>됩니다.
             </p>
           )}
+        </label>
+
+        <label className={s.stack}>
+          <span className={s.rowLabel}>사는 형태</span>
+          <span className={s.rowSub}>
+            서비스 개선 통계에만 씁니다. 답하지 않아도 됩니다.
+          </span>
+          <select
+            className={s.select}
+            value={segment}
+            onChange={(e) =>
+              setProfile({ segment: e.target.value as typeof segment })
+            }
+          >
+            <option value="">답하지 않음</option>
+            <option value="solo_new">{SEGMENT_LABEL.solo_new}</option>
+            <option value="solo_veteran">{SEGMENT_LABEL.solo_veteran}</option>
+            <option value="family">{SEGMENT_LABEL.family}</option>
+          </select>
         </label>
 
         <label className={s.stack}>

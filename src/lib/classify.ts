@@ -1,5 +1,5 @@
 import type { RouteId } from '../data/routeKinds'
-import type { Item } from '../types'
+import type { Category, Item } from '../types'
 import { lookupFee, resolveFee } from './fees'
 import { getActiveRegion } from './activeRegion'
 import type { PreparedImage } from './image'
@@ -41,6 +41,10 @@ export type Classification = {
   basis: string
   warning: string
   reusable: boolean
+  /** K10 — 카테고리별 재사용 비율 분해용 */
+  category?: Category
+  /** 카운터② — 수수료 없이 내보낼 길이 있었는지 */
+  freeAlternativeAvailable?: boolean
   source: 'ai' | 'mock'
   model?: string
   usage?: { input: number; output: number }
@@ -101,6 +105,9 @@ export function merge(c: Classification, photo?: string): ClassifyOutcome {
         photo,
         confidence: c.confidence,
         basis: c.basis,
+        origin: 'ai',
+        category: c.category,
+        freeAlternativeAvailable: c.freeAlternativeAvailable,
       },
       uncertain: c.confidence < CONFIDENCE_THRESHOLD,
       feeUnknown: true,
@@ -140,6 +147,11 @@ export function merge(c: Classification, photo?: string): ClassifyOutcome {
       photo,
       confidence: c.confidence,
       basis: c.basis,
+      // 이 물건은 판별을 거쳤습니다 — K2 의 분모에 들어갑니다
+      origin: 'ai',
+      // K10 · 카운터② — AI 가 판단해 주므로 사용자에게 묻지 않습니다
+      category: c.category,
+      freeAlternativeAvailable: c.freeAlternativeAvailable,
     },
     uncertain: c.confidence < CONFIDENCE_THRESHOLD,
     feeUnknown: !hit,
