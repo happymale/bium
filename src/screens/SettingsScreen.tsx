@@ -70,7 +70,6 @@ export function SettingsScreen() {
             {REGION_OPTIONS.map((r) => (
               <option key={r.id} value={r.id}>
                 {r.name}
-                {r.supported ? '' : ' (요금표 준비 중)'}
               </option>
             ))}
           </select>

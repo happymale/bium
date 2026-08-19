@@ -5,6 +5,7 @@ import { ItemContext } from '../components/ItemContext'
 import { ROUTE_BY_ID } from '../data/routeKinds'
 import { destinationFor } from '../data/region'
 import { ACTION_LINKS } from '../data/actionLinks'
+import { isDirectReportUrl } from '../data/fees'
 import { NATIONWIDE, useActiveRegion } from '../lib/activeRegion'
 import { useItems } from '../store/items'
 import { formatWon, lookupFee } from '../lib/fees'
@@ -91,6 +92,8 @@ export function ResultScreen() {
   // K2·K3·K5 기록용. 상태를 바꾸기 **전에** 읽어야 등록→지금까지의 일수가 나옵니다.
   const origin = originOf(item)
   const idleDays = daysIdle(item)
+  // 이 구의 신고 URL 이 진짜 신고 시스템인지 (아니면 검색 결과)
+  const directReport = fees ? isDirectReportUrl(fees.reportUrl) : false
   const secondsFromCapture = item.capturedAt
     ? (Date.now() - item.capturedAt) / 1000
     : undefined
@@ -205,18 +208,32 @@ export function ResultScreen() {
         </>
       ) : item.route === 'bulk' && fees ? (
         <>
-          {/* 실제로 신고가 이루어지는 곳 */}
+          {/* 신고 URL 을 확보한 구(4곳)와 못 한 구(21곳)의 문구를 갈라 씁니다.
+              검색 결과로 보내면서 "직접 신고하기" 라고 부르면 버튼이 거짓말을
+              합니다 — 폐건전지 지도 때와 같은 실수를 반복하지 않기 위해서입니다. */}
           <a
             className={`${s.cta} ${s.linkBtn}`}
             href={fees.reportUrl}
             target="_blank"
             rel="noreferrer"
           >
-            {regionOpt.name}에 직접 신고하기 ↗
+            {directReport
+              ? `${regionOpt.name}에 직접 신고하기 ↗`
+              : `${regionOpt.name} 신고처 찾기 ↗`}
           </a>
           <p className={s.alt}>
-            신고와 결제는 구청 시스템에서 이루어집니다. 배출 스티커 번호를 받아
-            부착하세요.
+            {directReport ? (
+              <>
+                신고와 결제는 구청 시스템에서 이루어집니다. 배출 스티커 번호를
+                받아 부착하세요.
+              </>
+            ) : (
+              <>
+                {regionOpt.name}의 인터넷 신고 주소는 아직 확보하지 못했습니다.
+                <b> 검색 결과로 연결</b>되니 구청 공식 페이지를 골라 주세요.
+                금액은 위 요금표 기준이 맞습니다.
+              </>
+            )}
           </p>
           {/* 개념 시연 — 실제 대행은 지자체 협약이 필요합니다 */}
           <button
